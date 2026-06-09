@@ -51,7 +51,7 @@ jobs:
         with:
           script: |
             const prNumber = context.payload.pull_request.number;
-            const previewUrl = `https://countty.com/pr/${prNumber}/`;
+            const previewUrl = `https://clockdown.us/pr/${prNumber}/`;
             const body = `🔗 **Preview deployed:** ${previewUrl}`;
 
             // Check for existing bot comment to update instead of spamming
