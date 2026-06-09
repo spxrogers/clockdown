@@ -1,4 +1,4 @@
-# Countty — Countdown Timers That Don't Suck
+# Clockdown — Countdown Timers That Don't Suck
 
 ## Architecture
 Single `index.html` with embedded CSS + JS. Zero dependencies, zero build step. Deploys anywhere static files are served (GitHub Pages, Vercel, Netlify, S3).
@@ -7,7 +7,7 @@ Single `index.html` with embedded CSS + JS. Zero dependencies, zero build step. 
 All countdown data lives in the URL hash fragment:
 
 ```
-countty.com/#t=2025-12-31T00:00&n=New%20Years%20Eve&e=🎉
+clockdown.us/#t=2025-12-31T00:00&n=New%20Years%20Eve&e=🎉
 ```
 
 Parameters:
@@ -20,9 +20,9 @@ No backend. No database. The URL **is** the data.
 
 ## Two Modes
 
-1. **Creator mode** (`countty.com`) — Form to set event name, date/time, emoji, and theme. Live preview updates as you type. Big "Copy Link" button generates the hash URL.
+1. **Creator mode** (`clockdown.us`) — Form to set event name, date/time, emoji, and theme. Live preview updates as you type. Big "Copy Link" button generates the hash URL.
 
-2. **Countdown mode** (`countty.com/#t=...`) — Full-screen countdown with animated digits, event name, emoji, and background effect. When it hits zero: confetti explosion + celebration animation.
+2. **Countdown mode** (`clockdown.us/#t=...`) — Full-screen countdown with animated digits, event name, emoji, and background effect. When it hits zero: confetti explosion + celebration animation.
 
 ## Design Direction (Partiful-inspired)
 - Dark base with bold accent color (electric purple/pink gradient)
