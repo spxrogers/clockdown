@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GPPMHQSYHJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-GPPMHQSYHJ');
+</script>
+<title>Clockdown — Countdown Timers That Don't Suck</title>
+<meta name="description" content="Create beautiful, shareable countdown timers in seconds. No signup, no ads, no bloat.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0f;
+  --surface: rgba(255,255,255,0.04);
+  --surface-border: rgba(255,255,255,0.08);
+  --surface-hover: rgba(255,255,255,0.07);
+  --text: #f0f0f5;
+  --text-dim: rgba(255,255,255,0.5);
+  --accent: #c084fc;
+  --accent-bright: #e879f9;
+  --accent-glow: rgba(192,132,252,0.25);
+  --gradient: linear-gradient(135deg, #c084fc, #e879f9, #fb7185);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+html { height: 100%; }
+
+body {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100%;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- ANIMATED GRADIENT BACKGROUND ---- */
+.bg-gradient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  transition: background 0.6s ease;
+}
+.bg-gradient::before {
+  content: '';
+  position: absolute;
+  width: 150vmax;
+  height: 150vmax;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 30% 40%, rgba(192,132,252,0.12) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(251,113,133,0.08) 0%, transparent 50%),
+              radial-gradient(circle at 50% 50%, rgba(232,121,249,0.06) 0%, transparent 60%);
+  animation: bgPulse 12s ease-in-out infinite alternate;
+}
+@keyframes bgPulse {
+  0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) scale(1.1) rotate(15deg); }
+}
+
+/* ---- CREATOR MODE — LIVE BACKDROP LAYOUT ---- */
+#creator {
+  display: none;
+  flex-direction: column;
+  min-height: 100vh;
+}
+#creator.active { display: flex; }
+
+.live-preview {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 20px 32px;
+  min-height: 45vh;
+  gap: 16px;
+  transition: all 0.3s ease;
+}
+
+.lp-emoji { font-size: 3rem; animation: emojiFloat 3s ease-in-out infinite; transition: all 0.2s; }
+@keyframes emojiFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+.lp-name {
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-weight: 700;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+  max-width: 500px;
+  min-height: 1.4em;
+}
+.lp-name.placeholder { opacity: 0.3; }
+
+.lp-timer { display: flex; gap: clamp(6px, 2vw, 14px); align-items: center; }
+.lp-unit { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.lp-digits {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: clamp(8px, 2vw, 16px) clamp(12px, 3vw, 24px);
+  min-width: clamp(50px, 12vw, 90px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+.lp-digits::after {
+  content: '';
+  position: absolute;
+  left: 10%; right: 10%; top: 50%;
+  height: 1px;
+  background: rgba(255,255,255,0.05);
+}
+.lp-val {
+  font-size: clamp(1.6rem, 6vw, 3rem);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.lp-label {
+  font-size: clamp(0.55rem, 1.5vw, 0.7rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+.lp-colon {
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 22px;
+  animation: colonPulse 1s ease-in-out infinite;
+}
+@keyframes colonPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.lp-empty { font-size: 1.2rem; color: var(--text-dim); font-weight: 500; }
+
+/* Creator form panel */
+.creator-panel {
+  flex: 1;
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-top: 1px solid var(--surface-border);
+  border-radius: 24px 24px 0 0;
+  padding: 28px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  max-width: 100%;
+}
+
+.panel-header { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 480px; }
+.logo {
+  font-size: 1.6rem;
+  font-weight: 700;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.03em;
+}
+.tagline { color: var(--text-dim); font-size: 0.85rem; }
+
+.form-body { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 20px; }
+
+.field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.field input[type="text"] {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field input[type="text"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.field input::placeholder { color: var(--text-dim); }
+
+/* ---- CUSTOM DATE PICKER ---- */
+.picker-trigger {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.picker-trigger:hover { border-color: rgba(255,255,255,0.15); }
+.picker-trigger.open {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.picker-trigger .arrow { font-size: 0.65rem; color: var(--text-dim); }
+
+.picker-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #13131f;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  z-index: 30;
+  padding: 16px;
+  min-width: 280px;
+}
+.picker-dropdown.open { display: block; }
+
+/* Calendar */
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.cal-header button {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.cal-header button:hover { background: rgba(255,255,255,0.08); }
+.cal-title { font-weight: 600; font-size: 0.95rem; }
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.cal-weekday {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding: 4px 0;
+}
+.cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.cal-day {
+  text-align: center;
+  padding: 8px 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.12s;
+  border: none;
+  background: none;
+  color: var(--text);
+}
+.cal-day:hover { background: rgba(255,255,255,0.08); }
+.cal-day.other-month { color: rgba(255,255,255,0.15); }
+.cal-day.today { border: 1px solid var(--accent); }
+.cal-day.selected { background: var(--accent); color: #fff; }
+.cal-day.past { color: rgba(255,255,255,0.12); cursor: default; }
+.cal-day.past:hover { background: none; }
+
+/* Time picker */
+.time-picker-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.time-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.time-col button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 6px;
+  transition: all 0.12s;
+  line-height: 1;
+}
+.time-col button:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+.time-val {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+  text-align: center;
+  padding: 4px 0;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.time-sep {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  padding-bottom: 2px;
+}
+.time-ampm {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-left: 6px;
+}
+.time-ampm:hover { background: rgba(255,255,255,0.1); }
+
+/* Native date/time inputs for mobile (invisible, used as picker triggers) */
+.native-picker-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* On touch devices, overlay the native input on the trigger so taps open the OS picker directly */
+@media (pointer: coarse) and (hover: none) {
+  .native-picker-input {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+    z-index: 31;
+  }
+}
+
+.row { display: flex; gap: 12px; }
+.row .field { flex: 1; position: relative; }
+
+/* Emoji picker + custom input */
+.emoji-section { display: flex; flex-direction: column; gap: 10px; }
+.emoji-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.emoji-btn {
+  width: 40px; height: 40px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: rgba(255,255,255,0.05);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.emoji-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); }
+.emoji-btn.selected { border-color: var(--accent); background: var(--accent-glow); transform: scale(1.1); }
+.emoji-custom-row { display: flex; align-items: center; gap: 8px; }
+.emoji-custom-row span { color: var(--text-dim); font-size: 0.8rem; white-space: nowrap; }
+.emoji-custom-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  max-width: 120px;
+}
+.emoji-custom-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+/* Timezone selector */
+.tz-selector { position: relative; width: 100%; }
+.tz-display {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tz-display:hover { border-color: rgba(255,255,255,0.15); }
+.tz-display.open { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.tz-display-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tz-display-arrow { font-size: 0.7rem; color: var(--text-dim); transition: transform 0.2s; flex-shrink: 0; }
+.tz-display.open .tz-display-arrow { transform: rotate(180deg); }
+.tz-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0; right: 0;
+  background: #13131f;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 20;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+}
+.tz-dropdown.open { display: block; }
+.tz-search {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.04);
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+}
+.tz-search::placeholder { color: var(--text-dim); }
+.tz-list { list-style: none; }
+.tz-option {
+  padding: 9px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.1s;
+  color: var(--text);
+}
+.tz-option:hover { background: rgba(255,255,255,0.06); }
+.tz-option.active { background: var(--accent-glow); color: var(--accent-bright); }
+.tz-detected { font-size: 0.7rem; color: var(--text-dim); margin-top: 4px; }
+
+/* Theme / vibe selector */
+.theme-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.theme-swatch {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.theme-swatch::before { content: ''; position: absolute; inset: 3px; border-radius: 8px; }
+.theme-swatch:hover { transform: scale(1.08); }
+.theme-swatch.selected { border-color: #fff; transform: scale(1.08); }
+.theme-swatch[data-theme="galaxy"]::before { background: linear-gradient(135deg, #c084fc, #e879f9, #fb7185); }
+.theme-swatch[data-theme="sunset"]::before { background: linear-gradient(135deg, #fb923c, #f97316, #ef4444); }
+.theme-swatch[data-theme="ocean"]::before { background: linear-gradient(135deg, #38bdf8, #22d3ee, #2dd4bf); }
+.theme-swatch[data-theme="neon"]::before { background: linear-gradient(135deg, #a3e635, #facc15, #f97316); }
+.theme-swatch[data-theme="minimal"]::before { background: linear-gradient(135deg, #71717a, #a1a1aa, #d4d4d8); }
+.theme-swatch-label { display: block; font-size: 0.65rem; color: var(--text-dim); text-align: center; margin-top: 4px; font-weight: 500; }
+.theme-option { display: flex; flex-direction: column; align-items: center; }
+
+/* Buttons */
+.btn-row { display: flex; gap: 10px; width: 100%; max-width: 480px; }
+.btn-primary {
+  flex: 1; padding: 14px; border: none; border-radius: var(--radius-sm);
+  background: var(--gradient); color: #fff; font-family: inherit;
+  font-size: 1rem; font-weight: 600; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  overflow: hidden;
+}
+.btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 30px var(--accent-glow); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-secondary {
+  padding: 14px 20px; border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm); background: var(--surface); color: var(--text);
+  font-family: inherit; font-size: 0.95rem; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.btn-secondary:hover { background: var(--surface-hover); border-color: rgba(255,255,255,0.15); }
+
+/* ---- FULL COUNTDOWN MODE ---- */
+#countdown {
+  display: none; flex-direction: column; align-items: center;
+  justify-content: center; gap: 24px; padding: 32px 20px;
+  width: 100%; min-height: 100vh; text-align: center;
+}
+#countdown.active { display: flex; }
+
+.event-emoji { font-size: 3.5rem; animation: emojiFloat 3s ease-in-out infinite; }
+.event-name {
+  font-size: clamp(1.4rem, 5vw, 2.5rem); font-weight: 700;
+  background: var(--gradient); -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; background-clip: text;
+  line-height: 1.2; max-width: 600px;
+}
+
+.timer-grid { display: flex; gap: clamp(8px, 3vw, 20px); align-items: center; }
+.timer-unit { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.timer-digits {
+  position: relative; background: var(--surface);
+  border: 1px solid var(--surface-border); border-radius: var(--radius);
+  padding: clamp(12px, 3vw, 24px) clamp(16px, 4vw, 32px);
+  min-width: clamp(60px, 15vw, 110px);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); overflow: hidden;
+}
+.timer-digits::after {
+  content: ''; position: absolute; left: 8%; right: 8%; top: 50%;
+  height: 1px; background: rgba(255,255,255,0.06);
+}
+.digit-value {
+  font-size: clamp(2rem, 8vw, 4.5rem); font-weight: 700;
+  line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  background: var(--gradient); -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; background-clip: text;
+}
+.digit-label {
+  font-size: clamp(0.6rem, 2vw, 0.8rem); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim);
+}
+.timer-colon {
+  font-size: clamp(1.5rem, 5vw, 3rem); font-weight: 700;
+  color: var(--text-dim); margin-bottom: 28px; animation: colonPulse 1s ease-in-out infinite;
+}
+
+.countdown-actions { display: flex; gap: 12px; margin-top: 8px; }
+.countdown-actions button {
+  padding: 10px 20px; border-radius: 999px; border: 1px solid var(--surface-border);
+  background: var(--surface); color: var(--text); font-family: inherit;
+  font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.15s;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.countdown-actions button:hover { background: var(--surface-hover); border-color: rgba(255,255,255,0.2); }
+
+.cd-tz-badge {
+  font-size: 0.85rem; color: var(--text-dim); font-weight: 500;
+  padding: 6px 14px; background: var(--surface); border: 1px solid var(--surface-border);
+  border-radius: 999px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+
+.celebration-text {
+  display: none; font-size: clamp(2rem, 8vw, 4rem); font-weight: 700;
+  background: var(--gradient); -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; background-clip: text;
+  animation: celebrationPop 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes celebrationPop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 32px; left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(20,20,30,0.9); border: 1px solid var(--surface-border);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  color: var(--text); padding: 12px 24px; border-radius: 999px;
+  font-family: inherit; font-size: 0.9rem; font-weight: 500;
+  pointer-events: none;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s;
+  opacity: 0; z-index: 100;
+}
+.toast.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+#confetti-canvas { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
+
+@keyframes digitFlipIn { 0% { transform: translateY(-30%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+.digit-flip { animation: digitFlipIn 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* Responsive */
+@media (max-width: 480px) {
+  .live-preview { min-height: 38vh; padding: 32px 16px 24px; }
+  .lp-timer { gap: 3px; }
+  .lp-colon { margin: 0 -1px 22px; font-size: 1rem; }
+  .lp-digits { padding: 6px 6px; min-width: 46px; border-radius: 8px; }
+  .lp-val { font-size: 1.4rem; }
+  .creator-panel { padding: 20px 16px 32px; border-radius: 20px 20px 0 0; }
+  .timer-grid { gap: 4px; }
+  .timer-colon { margin: 0 -2px 28px; font-size: 1.2rem; }
+  .timer-digits { padding: 10px 8px; min-width: 56px; border-radius: 12px; }
+  .countdown-actions { flex-direction: column; width: 100%; max-width: 260px; }
+  .countdown-actions button { width: 100%; }
+  .btn-row { flex-direction: column; }
+  .picker-dropdown { left: -20px; right: -20px; min-width: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-gradient"></div>
+
+<!-- ============ CREATOR MODE ============ -->
+<div id="creator">
+  <div class="live-preview" id="live-preview">
+    <div class="lp-emoji" id="lp-emoji">🎉</div>
+    <div class="lp-name placeholder" id="lp-name">Your Event Name</div>
+    <div class="lp-timer" id="lp-timer">
+      <div class="lp-unit"><div class="lp-digits"><span class="lp-val" id="lp-days">--</span></div><span class="lp-label">Days</span></div>
+      <span class="lp-colon">:</span>
+      <div class="lp-unit"><div class="lp-digits"><span class="lp-val" id="lp-hours">--</span></div><span class="lp-label">Hours</span></div>
+      <span class="lp-colon">:</span>
+      <div class="lp-unit"><div class="lp-digits"><span class="lp-val" id="lp-mins">--</span></div><span class="lp-label">Min</span></div>
+      <span class="lp-colon">:</span>
+      <div class="lp-unit"><div class="lp-digits"><span class="lp-val" id="lp-secs">--</span></div><span class="lp-label">Sec</span></div>
+    </div>
+    <div class="lp-empty" id="lp-empty" style="display:none;">Pick a date to start counting</div>
+  </div>
+
+  <div class="creator-panel">
+    <div class="panel-header">
+      <div class="logo">clockdown</div>
+      <div class="tagline">timers that don't suck</div>
+    </div>
+
+    <div class="form-body">
+      <div class="field">
+        <label>Event Name</label>
+        <input type="text" id="inp-name" placeholder="New Year's Eve" maxlength="80" autocomplete="off">
+      </div>
+
+      <div class="row">
+        <div class="field" style="position:relative;">
+          <label>Date</label>
+          <button class="picker-trigger" id="date-trigger" type="button">
+            <span id="date-trigger-text" style="color:var(--text-dim)">Pick a date</span>
+            <span class="arrow">▼</span>
+          </button>
+          <div class="picker-dropdown" id="date-dropdown">
+            <div class="cal-header">
+              <button type="button" id="cal-prev">‹</button>
+              <span class="cal-title" id="cal-title"></span>
+              <button type="button" id="cal-next">›</button>
+            </div>
+            <div class="cal-weekdays" id="cal-weekdays"></div>
+            <div class="cal-days" id="cal-days"></div>
+          </div>
+          <input type="date" class="native-picker-input" id="native-date">
+        </div>
+        <div class="field" style="position:relative;">
+          <label>Time</label>
+          <button class="picker-trigger" id="time-trigger" type="button">
+            <span id="time-trigger-text">12:00 AM</span>
+            <span class="arrow">▼</span>
+          </button>
+          <div class="picker-dropdown" id="time-dropdown" style="min-width:220px;">
+            <div class="time-picker-wrap">
+              <div class="time-col">
+                <button type="button" id="hr-up">▲</button>
+                <span class="time-val" id="tp-hr">12</span>
+                <button type="button" id="hr-down">▼</button>
+              </div>
+              <span class="time-sep">:</span>
+              <div class="time-col">
+                <button type="button" id="min-up">▲</button>
+                <span class="time-val" id="tp-min">00</span>
+                <button type="button" id="min-down">▼</button>
+              </div>
+              <button class="time-ampm" type="button" id="tp-ampm">AM</button>
+            </div>
+          </div>
+          <input type="time" class="native-picker-input" id="native-time">
+        </div>
+      </div>
+
+      <div class="field" style="position:relative;">
+        <label>Timezone</label>
+        <div class="tz-selector" id="tz-selector">
+          <div class="tz-display" id="tz-display">
+            <span class="tz-display-text" id="tz-display-text">America/New_York</span>
+            <span class="tz-display-arrow">▼</span>
+          </div>
+          <div class="tz-dropdown" id="tz-dropdown">
+            <input type="text" class="tz-search" id="tz-search" placeholder="Search timezones..." autocomplete="off">
+            <ul class="tz-list" id="tz-list"></ul>
+          </div>
+        </div>
+        <div class="tz-detected" id="tz-detected"></div>
+      </div>
+
+      <div class="field">
+        <label>Icon</label>
+        <div class="emoji-section">
+          <div class="emoji-grid" id="emoji-grid"></div>
+          <div class="emoji-custom-row">
+            <span>or type:</span>
+            <input type="text" class="emoji-custom-input" id="emoji-custom" placeholder="🦄" maxlength="8">
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Vibe</label>
+        <div class="theme-grid" id="theme-grid"></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="btn-create" disabled>Copy Share Link</button>
+      <button class="btn-secondary" id="btn-fullscreen">Open ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FULL COUNTDOWN MODE ============ -->
+<div id="countdown">
+  <div class="event-emoji" id="cd-emoji"></div>
+  <h1 class="event-name" id="cd-name"></h1>
+  <div class="timer-grid" id="cd-timer">
+    <div class="timer-unit"><div class="timer-digits"><span class="digit-value" id="cd-days">00</span></div><span class="digit-label">Days</span></div>
+    <span class="timer-colon">:</span>
+    <div class="timer-unit"><div class="timer-digits"><span class="digit-value" id="cd-hours">00</span></div><span class="digit-label">Hours</span></div>
+    <span class="timer-colon">:</span>
+    <div class="timer-unit"><div class="timer-digits"><span class="digit-value" id="cd-mins">00</span></div><span class="digit-label">Minutes</span></div>
+    <span class="timer-colon">:</span>
+    <div class="timer-unit"><div class="timer-digits"><span class="digit-value" id="cd-secs">00</span></div><span class="digit-label">Seconds</span></div>
+  </div>
+  <div class="cd-tz-badge" id="cd-tz-badge"></div>
+  <div class="celebration-text" id="cd-celebration">It's time! 🎉</div>
+  <div class="countdown-actions">
+    <button id="btn-share">Share</button>
+    <button id="btn-new">Create Your Own</button>
+  </div>
+</div>
+
+<canvas id="confetti-canvas"></canvas>
+<div class="toast" id="toast"></div>
+<div id="ad-slot"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  const EMOJIS = ['🎉','🎂','🎄','💍','🚀','🏖️','🎓','⏰','👶','🏆','💪','🌙','🎃','❤️','✈️','🎵'];
+  const THEMES = [
+    { id: 'galaxy', label: 'Galaxy' },
+    { id: 'sunset', label: 'Sunset' },
+    { id: 'ocean',  label: 'Ocean'  },
+    { id: 'neon',   label: 'Neon'   },
+    { id: 'minimal',label: 'Minimal'},
+  ];
+  const THEME_STYLES = {
+    galaxy:  { accent: '#c084fc', accentBright: '#e879f9', gradient: 'linear-gradient(135deg, #c084fc, #e879f9, #fb7185)', bgGrad: 'radial-gradient(circle at 30% 40%, rgba(192,132,252,0.12) 0%, transparent 50%), radial-gradient(circle at 70% 60%, rgba(251,113,133,0.08) 0%, transparent 50%)' },
+    sunset:  { accent: '#fb923c', accentBright: '#f97316', gradient: 'linear-gradient(135deg, #fb923c, #f97316, #ef4444)', bgGrad: 'radial-gradient(circle at 30% 40%, rgba(251,146,60,0.15) 0%, transparent 50%), radial-gradient(circle at 70% 60%, rgba(239,68,68,0.10) 0%, transparent 50%)' },
+    ocean:   { accent: '#38bdf8', accentBright: '#22d3ee', gradient: 'linear-gradient(135deg, #38bdf8, #22d3ee, #2dd4bf)', bgGrad: 'radial-gradient(circle at 30% 40%, rgba(56,189,248,0.15) 0%, transparent 50%), radial-gradient(circle at 70% 60%, rgba(45,212,191,0.10) 0%, transparent 50%)' },
+    neon:    { accent: '#a3e635', accentBright: '#facc15', gradient: 'linear-gradient(135deg, #a3e635, #facc15, #f97316)', bgGrad: 'radial-gradient(circle at 30% 40%, rgba(163,230,53,0.15) 0%, transparent 50%), radial-gradient(circle at 70% 60%, rgba(249,115,22,0.10) 0%, transparent 50%)' },
+    minimal: { accent: '#a1a1aa', accentBright: '#d4d4d8', gradient: 'linear-gradient(135deg, #a1a1aa, #d4d4d8, #f4f4f5)', bgGrad: 'radial-gradient(circle at 50% 50%, rgba(161,161,170,0.06) 0%, transparent 50%)' },
+  };
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+  // ---- TIMEZONE ----
+  const ALL_TIMEZONES = (function() {
+    try { return Intl.supportedValuesOf('timeZone'); }
+    catch(e) {
+      return ['Pacific/Honolulu','America/Anchorage','America/Los_Angeles','America/Denver',
+        'America/Chicago','America/New_York','America/Sao_Paulo','Atlantic/Reykjavik',
+        'Europe/London','Europe/Paris','Europe/Berlin','Europe/Moscow',
+        'Asia/Dubai','Asia/Kolkata','Asia/Bangkok','Asia/Shanghai',
+        'Asia/Tokyo','Asia/Seoul','Australia/Sydney','Pacific/Auckland','UTC'];
+    }
+  })();
+  const DETECTED_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  function tzOffsetLabel(tz) {
+    try {
+      const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' });
+      const parts = fmt.formatToParts(new Date());
+      const p = parts.find(p => p.type === 'timeZoneName');
+      return p ? p.value : '';
+    } catch { return ''; }
+  }
+  function tzFriendlyName(tz) {
+    const offset = tzOffsetLabel(tz);
+    return offset ? `${tz} (${offset})` : tz;
+  }
+  // Given "2026-03-29", "23:00", "America/New_York" → the UTC instant when it's 11PM in NY
+  function wallClockToUTC(dateStr, timeStr, tz) {
+    // Create a date in the local timezone, then figure out the offset for the target tz
+    // by comparing what "now" looks like in UTC vs the target tz
+    const [y, mo, d] = dateStr.split('-').map(Number);
+    const [h, mi] = timeStr.split(':').map(Number);
+
+    // Format a known instant in the target tz to extract its offset
+    // Use the target date itself as the reference point (handles DST correctly)
+    const refUTC = Date.UTC(y, mo - 1, d, h, mi);
+    const refDate = new Date(refUTC);
+
+    // Get the wall clock reading in the target tz for our UTC reference
+    const tzParts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    }).formatToParts(refDate);
+
+    const get = (type) => parseInt(tzParts.find(p => p.type === type).value);
+    const tzWall = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour') === 24 ? 0 : get('hour'), get('minute'), get('second'));
+
+    // The offset is: UTC_ref - tzWall (what UTC ref looks like as wall clock in tz)
+    const offsetMs = refUTC - tzWall;
+
+    // The target UTC instant = desired wall clock (as UTC) + offset
+    return new Date(refUTC + offsetMs);
+  }
+
+  // ---- STATE ----
+  let selectedEmoji = '🎉';
+  let selectedTheme = 'galaxy';
+  let selectedTz = DETECTED_TZ;
+  let previewInterval = null;
+  let countdownInterval = null;
+  let confettiActive = false;
+  let selectedDate = '';
+  let selectedTime = '00:00';
+  let calYear, calMonth;
+  let tpHour = 12, tpMin = 0, tpAmPm = 'AM';
+
+  const isMobile = window.matchMedia('(pointer: coarse) and (hover: none)').matches;
+  const $ = (s) => document.querySelector(s);
+  const creator = $('#creator');
+  const countdownEl = $('#countdown');
+  const inpName = $('#inp-name');
+  const emojiGrid = $('#emoji-grid');
+  const emojiCustom = $('#emoji-custom');
+  const themeGrid = $('#theme-grid');
+  const btnCreate = $('#btn-create');
+  const btnFullscreen = $('#btn-fullscreen');
+  const btnShare = $('#btn-share');
+  const btnNew = $('#btn-new');
+  const toast = $('#toast');
+
+  // ---- INIT ----
+  function init() {
+    initDatePicker();
+    initTimePicker();
+    initTimezone();
+    buildEmojiGrid();
+    buildThemeGrid();
+    bindEvents();
+    route();
+  }
+
+  // ---- CUSTOM DATE PICKER ----
+  function initDatePicker() {
+    const trigger = $('#date-trigger');
+    const dropdown = $('#date-dropdown');
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    calYear = tomorrow.getFullYear();
+    calMonth = tomorrow.getMonth();
+
+    // Build weekday headers
+    const weekdaysEl = $('#cal-weekdays');
+    DAYS.forEach(d => {
+      const span = document.createElement('span');
+      span.className = 'cal-weekday';
+      span.textContent = d;
+      weekdaysEl.appendChild(span);
+    });
+
+    // Select tomorrow by default
+    selectDate(calYear, calMonth, tomorrow.getDate());
+
+    $('#cal-prev').addEventListener('click', (e) => {
+      e.stopPropagation();
+      calMonth--;
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      renderCalendar();
+    });
+    $('#cal-next').addEventListener('click', (e) => {
+      e.stopPropagation();
+      calMonth++;
+      if (calMonth > 11) { calMonth = 0; calYear++; }
+      renderCalendar();
+    });
+
+    if (isMobile) {
+      const nativeDate = $('#native-date');
+      nativeDate.min = new Date().toISOString().split('T')[0];
+      nativeDate.value = selectedDate;
+
+      // The native input is CSS-overlaid on the trigger, so taps hit it directly.
+      // No need for showPicker()/click() — just handle the change event.
+      nativeDate.addEventListener('change', () => {
+        if (nativeDate.value) {
+          const [y, m, d] = nativeDate.value.split('-').map(Number);
+          selectDate(y, m - 1, d);
+        }
+      });
+    } else {
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllDropdowns();
+        dropdown.classList.toggle('open');
+        trigger.classList.toggle('open');
+        renderCalendar();
+      });
+    }
+  }
+
+  function renderCalendar() {
+    const daysEl = $('#cal-days');
+    daysEl.innerHTML = '';
+    $('#cal-title').textContent = `${MONTHS[calMonth]} ${calYear}`;
+
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const daysInPrev = new Date(calYear, calMonth, 0).getDate();
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    // Previous month padding
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cal-day other-month past';
+      btn.textContent = daysInPrev - i;
+      daysEl.appendChild(btn);
+    }
+
+    // Current month
+    for (let d = 1; d <= daysInMonth; d++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cal-day';
+      btn.textContent = d;
+
+      const thisDate = new Date(calYear, calMonth, d);
+      thisDate.setHours(0,0,0,0);
+
+      if (thisDate < today) {
+        btn.classList.add('past');
+      } else {
+        const dateStr = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        if (dateStr === selectedDate) btn.classList.add('selected');
+        if (thisDate.getTime() === today.getTime()) btn.classList.add('today');
+
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectDate(calYear, calMonth, d);
+          closeAllDropdowns();
+        });
+      }
+
+      daysEl.appendChild(btn);
+    }
+
+    // Next month padding
+    const totalCells = firstDay + daysInMonth;
+    const remaining = (7 - (totalCells % 7)) % 7;
+    for (let i = 1; i <= remaining; i++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cal-day other-month';
+      btn.textContent = i;
+      daysEl.appendChild(btn);
+    }
+  }
+
+  function selectDate(y, m, d) {
+    selectedDate = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    const display = new Date(y, m, d);
+    $('#date-trigger-text').textContent = display.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    $('#date-trigger-text').style.color = 'var(--text)';
+    updateLivePreview();
+  }
+
+  // ---- CUSTOM TIME PICKER ----
+  function initTimePicker() {
+    const trigger = $('#time-trigger');
+    const dropdown = $('#time-dropdown');
+
+    if (isMobile) {
+      const nativeTime = $('#native-time');
+      nativeTime.value = selectedTime;
+
+      // The native input is CSS-overlaid on the trigger, so taps hit it directly.
+      nativeTime.addEventListener('change', () => {
+        if (nativeTime.value) {
+          const [h, m] = nativeTime.value.split(':').map(Number);
+          tpAmPm = h >= 12 ? 'PM' : 'AM';
+          tpHour = h % 12 || 12;
+          tpMin = m;
+          updateTimeDisplay();
+        }
+      });
+    } else {
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllDropdowns();
+        dropdown.classList.toggle('open');
+        trigger.classList.toggle('open');
+      });
+    }
+
+    $('#hr-up').addEventListener('click', (e) => { e.stopPropagation(); tpHour = tpHour >= 12 ? 1 : tpHour + 1; updateTimeDisplay(); });
+    $('#hr-down').addEventListener('click', (e) => { e.stopPropagation(); tpHour = tpHour <= 1 ? 12 : tpHour - 1; updateTimeDisplay(); });
+    $('#min-up').addEventListener('click', (e) => { e.stopPropagation(); tpMin = (tpMin + 5) % 60; updateTimeDisplay(); });
+    $('#min-down').addEventListener('click', (e) => { e.stopPropagation(); tpMin = (tpMin - 5 + 60) % 60; updateTimeDisplay(); });
+    $('#tp-ampm').addEventListener('click', (e) => { e.stopPropagation(); tpAmPm = tpAmPm === 'AM' ? 'PM' : 'AM'; updateTimeDisplay(); });
+
+    updateTimeDisplay();
+  }
+
+  function updateTimeDisplay() {
+    $('#tp-hr').textContent = String(tpHour).padStart(2, '0');
+    $('#tp-min').textContent = String(tpMin).padStart(2, '0');
+    $('#tp-ampm').textContent = tpAmPm;
+
+    const displayStr = `${tpHour}:${String(tpMin).padStart(2, '0')} ${tpAmPm}`;
+    $('#time-trigger-text').textContent = displayStr;
+
+    // Convert to 24h for internal use
+    let h24 = tpHour;
+    if (tpAmPm === 'AM' && h24 === 12) h24 = 0;
+    else if (tpAmPm === 'PM' && h24 !== 12) h24 += 12;
+    selectedTime = String(h24).padStart(2, '0') + ':' + String(tpMin).padStart(2, '0');
+
+    updateLivePreview();
+  }
+
+  // ---- CLOSE ALL DROPDOWNS ----
+  function closeAllDropdowns() {
+    ['#date-dropdown', '#time-dropdown'].forEach(sel => {
+      $(sel).classList.remove('open');
+    });
+    ['#date-trigger', '#time-trigger'].forEach(sel => {
+      $(sel).classList.remove('open');
+    });
+    // tz dropdown
+    $('#tz-display').classList.remove('open');
+    $('#tz-dropdown').classList.remove('open');
+  }
+
+  // ---- TIMEZONE PICKER ----
+  function initTimezone() {
+    const display = $('#tz-display');
+    const displayText = $('#tz-display-text');
+    const dropdown = $('#tz-dropdown');
+    const search = $('#tz-search');
+    const list = $('#tz-list');
+
+    selectedTz = DETECTED_TZ;
+    displayText.textContent = tzFriendlyName(selectedTz);
+    $('#tz-detected').textContent = `Detected: ${DETECTED_TZ}`;
+
+    function renderList(filter) {
+      list.innerHTML = '';
+      const q = (filter || '').toLowerCase();
+      const filtered = q
+        ? ALL_TIMEZONES.filter(tz => tz.toLowerCase().includes(q) || tzOffsetLabel(tz).toLowerCase().includes(q))
+        : ALL_TIMEZONES;
+      filtered.slice(0, 50).forEach(tz => {
+        const li = document.createElement('li');
+        li.className = 'tz-option' + (tz === selectedTz ? ' active' : '');
+        li.textContent = tzFriendlyName(tz);
+        li.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectedTz = tz;
+          displayText.textContent = tzFriendlyName(tz);
+          closeAllDropdowns();
+          updateLivePreview();
+        });
+        list.appendChild(li);
+      });
+      if (filtered.length > 50) {
+        const more = document.createElement('li');
+        more.className = 'tz-option';
+        more.style.cssText = 'color:var(--text-dim);font-style:italic;';
+        more.textContent = `${filtered.length - 50} more — type to filter`;
+        list.appendChild(more);
+      }
+    }
+
+    display.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = dropdown.classList.contains('open');
+      closeAllDropdowns();
+      if (!isOpen) {
+        display.classList.add('open');
+        dropdown.classList.add('open');
+        search.value = '';
+        renderList('');
+        setTimeout(() => search.focus(), 0);
+      }
+    });
+
+    search.addEventListener('input', () => renderList(search.value));
+    search.addEventListener('click', (e) => e.stopPropagation());
+    search.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllDropdowns(); });
+  }
+
+  // ---- EMOJI GRID ----
+  function buildEmojiGrid() {
+    EMOJIS.forEach(e => {
+      const btn = document.createElement('button');
+      btn.className = 'emoji-btn' + (e === selectedEmoji ? ' selected' : '');
+      btn.textContent = e;
+      btn.type = 'button';
+      btn.addEventListener('click', () => {
+        selectedEmoji = e;
+        emojiCustom.value = '';
+        emojiGrid.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        updateLivePreview();
+      });
+      emojiGrid.appendChild(btn);
+    });
+  }
+
+  // ---- THEME GRID ----
+  function buildThemeGrid() {
+    THEMES.forEach(t => {
+      const opt = document.createElement('div');
+      opt.className = 'theme-option';
+      const swatch = document.createElement('button');
+      swatch.className = 'theme-swatch' + (t.id === selectedTheme ? ' selected' : '');
+      swatch.setAttribute('data-theme', t.id);
+      swatch.type = 'button';
+      const label = document.createElement('span');
+      label.className = 'theme-swatch-label';
+      label.textContent = t.label;
+      swatch.addEventListener('click', () => {
+        selectedTheme = t.id;
+        themeGrid.querySelectorAll('.theme-swatch').forEach(b => b.classList.remove('selected'));
+        swatch.classList.add('selected');
+        applyTheme(t.id);
+        updateLivePreview();
+      });
+      opt.appendChild(swatch);
+      opt.appendChild(label);
+      themeGrid.appendChild(opt);
+    });
+  }
+
+  // ---- EVENTS ----
+  function bindEvents() {
+    inpName.addEventListener('input', updateLivePreview);
+
+    emojiCustom.addEventListener('input', () => {
+      const val = emojiCustom.value.trim();
+      if (val) {
+        selectedEmoji = val;
+        emojiGrid.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+        updateLivePreview();
+      }
+    });
+
+    btnCreate.addEventListener('click', copyShareLink);
+    btnFullscreen.addEventListener('click', () => {
+      const url = buildShareURL();
+      if (url) window.location.hash = url.split('#')[1];
+    });
+    btnShare.addEventListener('click', shareCountdown);
+    btnNew.addEventListener('click', () => { window.location.hash = ''; route(); });
+
+    window.addEventListener('hashchange', route);
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', () => closeAllDropdowns());
+
+    updateLivePreview();
+    previewInterval = setInterval(updateLivePreview, 1000);
+  }
+
+  // ---- ROUTING ----
+  function route() {
+    const params = parseHash();
+    if (params && params.t) showCountdown(params);
+    else showCreator();
+  }
+
+  function parseHash() {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return null;
+    const params = {};
+    hash.split('&').forEach(pair => {
+      const [k, ...rest] = pair.split('=');
+      if (k && rest.length) params[k] = decodeURIComponent(rest.join('='));
+    });
+    return params;
+  }
+
+  // ---- CREATOR ----
+  function showCreator() {
+    creator.classList.add('active');
+    countdownEl.classList.remove('active');
+    if (countdownInterval) clearInterval(countdownInterval);
+    confettiActive = false;
+    document.title = 'Clockdown \u2014 Countdown Timers That Don\'t Suck';
+    applyTheme(selectedTheme);
+    updateLivePreview();
+  }
+
+  function updateLivePreview() {
+    const name = inpName.value.trim();
+    $('#lp-emoji').textContent = selectedEmoji;
+    $('#lp-name').textContent = name || 'Your Event Name';
+    $('#lp-name').classList.toggle('placeholder', !name);
+
+    btnCreate.disabled = !selectedDate;
+    btnFullscreen.style.display = selectedDate ? '' : 'none';
+
+    if (selectedDate) {
+      $('#lp-timer').style.display = 'flex';
+      $('#lp-empty').style.display = 'none';
+      const target = wallClockToUTC(selectedDate, selectedTime, selectedTz);
+      const diff = calcDiff(target);
+      if (diff) {
+        $('#lp-days').textContent = String(diff.d).padStart(2, '0');
+        $('#lp-hours').textContent = String(diff.h).padStart(2, '0');
+        $('#lp-mins').textContent = String(diff.m).padStart(2, '0');
+        $('#lp-secs').textContent = String(diff.s).padStart(2, '0');
+      } else {
+        ['lp-days','lp-hours','lp-mins','lp-secs'].forEach(id => $(`#${id}`).textContent = '00');
+      }
+    } else {
+      $('#lp-timer').style.display = 'none';
+      $('#lp-empty').style.display = '';
+    }
+  }
+
+  function buildShareURL() {
+    if (!selectedDate) return null;
+    const name = inpName.value.trim();
+    let hash = `t=${encodeURIComponent(selectedDate + 'T' + selectedTime)}`;
+    hash += `&tz=${encodeURIComponent(selectedTz)}`;
+    if (name) hash += `&n=${encodeURIComponent(name)}`;
+    hash += `&e=${encodeURIComponent(selectedEmoji)}`;
+    if (selectedTheme !== 'galaxy') hash += `&bg=${selectedTheme}`;
+    return window.location.origin + window.location.pathname + '#' + hash;
+  }
+
+  function copyShareLink() {
+    const url = buildShareURL();
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('Link copied! Share it anywhere');
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('Link copied! Share it anywhere');
+    });
+  }
+
+  // ---- FULL COUNTDOWN ----
+  function showCountdown(params) {
+    creator.classList.remove('active');
+    countdownEl.classList.add('active');
+
+    const tz = params.tz || DETECTED_TZ;
+    const [dateStr, timeStr] = params.t.split('T');
+    const target = wallClockToUTC(dateStr, timeStr || '00:00', tz);
+    const name = params.n || '';
+    const emoji = params.e || '⏰';
+    const theme = params.bg || 'galaxy';
+
+    $('#cd-emoji').textContent = emoji;
+    $('#cd-name').textContent = name;
+    $('#cd-name').style.display = name ? '' : 'none';
+    $('#cd-timer').style.display = 'flex';
+    $('#cd-celebration').style.display = 'none';
+
+    const tzBadge = $('#cd-tz-badge');
+    const offset = tzOffsetLabel(tz);
+    const city = tz.split('/').pop().replace(/_/g, ' ');
+    tzBadge.textContent = offset ? `${city} (${offset})` : city;
+    tzBadge.style.display = '';
+
+    document.title = name ? `${name} \u2014 Clockdown` : 'Clockdown';
+    applyTheme(theme);
+
+    let prevValues = {};
+    function tick() {
+      const diff = calcDiff(target);
+      if (!diff) { celebrate(emoji); return; }
+      const units = { days: diff.d, hours: diff.h, mins: diff.m, secs: diff.s };
+      Object.entries(units).forEach(([key, val]) => {
+        const el = $(`#cd-${key}`);
+        const padded = String(val).padStart(2, '0');
+        if (prevValues[key] !== padded) {
+          el.textContent = padded;
+          el.classList.remove('digit-flip');
+          void el.offsetWidth;
+          el.classList.add('digit-flip');
+          prevValues[key] = padded;
+        }
+      });
+    }
+    tick();
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(tick, 1000);
+  }
+
+  function celebrate(emoji) {
+    if (countdownInterval) clearInterval(countdownInterval);
+    $('#cd-timer').style.display = 'none';
+    $('#cd-tz-badge').style.display = 'none';
+    const cel = $('#cd-celebration');
+    cel.textContent = `It's time! ${emoji}`;
+    cel.style.display = 'block';
+    startConfetti();
+  }
+
+  function shareCountdown() {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: document.title, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url).then(() => showToast('Link copied!')).catch(() => {});
+    }
+  }
+
+  // ---- THEME ----
+  function applyTheme(themeId) {
+    const t = THEME_STYLES[themeId] || THEME_STYLES.galaxy;
+    const root = document.documentElement;
+    root.style.setProperty('--accent', t.accent);
+    root.style.setProperty('--accent-bright', t.accentBright);
+    root.style.setProperty('--gradient', t.gradient);
+    root.style.setProperty('--accent-glow', t.accent + '40');
+    $('.bg-gradient').style.background = t.bgGrad;
+  }
+
+  // ---- TIME CALC ----
+  function calcDiff(target) {
+    let diff = target - new Date();
+    if (diff <= 0) return null;
+    const d = Math.floor(diff / 86400000); diff -= d * 86400000;
+    const h = Math.floor(diff / 3600000); diff -= h * 3600000;
+    const m = Math.floor(diff / 60000); diff -= m * 60000;
+    const s = Math.floor(diff / 1000);
+    return { d, h, m, s };
+  }
+
+  // ---- TOAST ----
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 2500);
+  }
+
+  // ---- CONFETTI ----
+  function startConfetti() {
+    if (confettiActive) return;
+    confettiActive = true;
+    const canvas = $('#confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const colors = ['#c084fc','#e879f9','#fb7185','#facc15','#38bdf8','#a3e635','#f97316'];
+    const particles = [];
+    for (let i = 0; i < 200; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        w: Math.random() * 10 + 5, h: Math.random() * 6 + 3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vx: (Math.random() - 0.5) * 4, vy: Math.random() * 3 + 2,
+        rot: Math.random() * 360, rotV: (Math.random() - 0.5) * 10, opacity: 1,
+      });
+    }
+    let frame = 0;
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      particles.forEach(p => {
+        if (p.opacity <= 0) return;
+        alive = true;
+        p.x += p.vx; p.y += p.vy; p.vy += 0.04; p.rot += p.rotV;
+        if (frame > 120) p.opacity -= 0.008;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot * Math.PI / 180);
+        ctx.globalAlpha = Math.max(0, p.opacity);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+      frame++;
+      if (alive) requestAnimationFrame(draw);
+    }
+    draw();
+    window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }, { once: true });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
