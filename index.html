@@ -92,6 +92,27 @@ body {
   transition: all 0.3s ease;
 }
 
+.lp-badge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-dim);
+  padding: 4px 12px;
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.lp-hint {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  max-width: 340px;
+  line-height: 1.4;
+}
+
 .lp-emoji { font-size: 3rem; animation: emojiFloat 3s ease-in-out infinite; transition: all 0.2s; }
 @keyframes emojiFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
@@ -181,7 +202,7 @@ body {
   background-clip: text;
   letter-spacing: -0.03em;
 }
-.tagline { color: var(--text-dim); font-size: 0.85rem; }
+.tagline { color: var(--text-dim); font-size: 0.78rem; font-style: italic; }
 
 .form-body { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 20px; }
 
@@ -423,6 +444,7 @@ body {
   max-width: 120px;
 }
 .emoji-custom-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.emoji-custom-input::placeholder { opacity: 0.4; }
 
 /* Timezone selector */
 .tz-selector { position: relative; width: 100%; }
@@ -640,6 +662,7 @@ body {
 <!-- ============ CREATOR MODE ============ -->
 <div id="creator">
   <div class="live-preview" id="live-preview">
+    <div class="lp-badge">Preview</div>
     <div class="lp-emoji" id="lp-emoji">🎉</div>
     <div class="lp-name placeholder" id="lp-name">Your Event Name</div>
     <div class="lp-timer" id="lp-timer">
@@ -652,6 +675,7 @@ body {
       <div class="lp-unit"><div class="lp-digits"><span class="lp-val" id="lp-secs">--</span></div><span class="lp-label">Sec</span></div>
     </div>
     <div class="lp-empty" id="lp-empty" style="display:none;">Pick a date to start counting</div>
+    <div class="lp-hint">Use the form below to create your own countdown ↓</div>
   </div>
 
   <div class="creator-panel">
