@@ -28,6 +28,7 @@ jobs:
           mkdir -p /tmp/pr-build
           cp index.html /tmp/pr-build/
           [ -f 404.html ] && cp 404.html /tmp/pr-build/
+          [ -d motivation ] && cp -r motivation /tmp/pr-build/
 
           # Check out gh-pages branch (or create it)
           if git rev-parse --verify origin/gh-pages >/dev/null 2>&1; then
@@ -40,6 +41,7 @@ jobs:
           # Copy PR build into pr/{number}/
           mkdir -p "pr/${PR_NUMBER}"
           cp /tmp/pr-build/index.html "pr/${PR_NUMBER}/"
+          [ -d /tmp/pr-build/motivation ] && cp -r /tmp/pr-build/motivation "pr/${PR_NUMBER}/"
 
           # Commit and push
           git add "pr/${PR_NUMBER}"

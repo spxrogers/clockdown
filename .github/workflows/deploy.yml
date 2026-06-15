@@ -28,6 +28,7 @@ jobs:
           cp index.html /tmp/site-build/
           cp 404.html /tmp/site-build/
           cp CNAME /tmp/site-build/
+          cp -r motivation /tmp/site-build/
 
           # Check out gh-pages branch
           git fetch origin gh-pages || true
@@ -40,7 +41,7 @@ jobs:
 
           # Replace root files but preserve pr/ directory
           find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name 'pr' -exec rm -rf {} +
-          cp /tmp/site-build/* .
+          cp -r /tmp/site-build/* .
 
           git add -A
           git diff --cached --quiet || git commit -m "Deploy from main ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
