@@ -1242,11 +1242,17 @@ body {
 
     emojiCustom.addEventListener('input', () => {
       const val = emojiCustom.value.trim();
+      emojiGrid.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
       if (val) {
         selectedEmoji = val;
-        emojiGrid.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
-        updateLivePreview();
+      } else {
+        // Cleared the custom input — revert to the default emoji and re-highlight it.
+        selectedEmoji = EMOJIS[0];
+        emojiGrid.querySelectorAll('.emoji-btn').forEach(b => {
+          if (b.textContent === EMOJIS[0]) b.classList.add('selected');
+        });
       }
+      updateLivePreview();
     });
 
     btnCreate.addEventListener('click', copyShareLink);
