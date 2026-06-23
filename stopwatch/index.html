@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GPPMHQSYHJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-GPPMHQSYHJ');
+</script>
+<title>Clockdown Stopwatch — Count Up With Laps</title>
+<meta name="description" content="A beautiful, shareable stopwatch with pause, resume, and lap splits. Name it, pick a vibe, share the link. No signup, no ads, no bloat.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0f;
+  --surface: rgba(255,255,255,0.04);
+  --surface-border: rgba(255,255,255,0.08);
+  --surface-hover: rgba(255,255,255,0.07);
+  --text: #f0f0f5;
+  --text-dim: rgba(255,255,255,0.5);
+  --accent: #c084fc;
+  --accent-bright: #e879f9;
+  --accent-glow: rgba(192,132,252,0.25);
+  --gradient: linear-gradient(135deg, #c084fc, #e879f9, #fb7185);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+html { height: 100%; }
+
+body {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100%;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- ANIMATED GRADIENT BACKGROUND ---- */
+.bg-gradient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  transition: background 0.6s ease;
+}
+.bg-gradient::before {
+  content: '';
+  position: absolute;
+  width: 150vmax;
+  height: 150vmax;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 30% 40%, rgba(192,132,252,0.12) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(251,113,133,0.08) 0%, transparent 50%),
+              radial-gradient(circle at 50% 50%, rgba(232,121,249,0.06) 0%, transparent 60%);
+  animation: bgPulse 12s ease-in-out infinite alternate;
+}
+@keyframes bgPulse {
+  0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) scale(1.1) rotate(15deg); }
+}
+
+/* ---- CREATOR MODE — LIVE BACKDROP LAYOUT ---- */
+#creator {
+  display: none;
+  flex-direction: column;
+  min-height: 100vh;
+}
+#creator.active { display: flex; }
+
+.live-preview {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 20px 32px;
+  min-height: 45vh;
+  gap: 16px;
+  transition: all 0.3s ease;
+}
+
+.lp-badge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-dim);
+  padding: 4px 12px;
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.lp-hint {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  max-width: 340px;
+  line-height: 1.4;
+}
+
+.lp-emoji { font-size: 3rem; animation: emojiFloat 3s ease-in-out infinite; transition: all 0.2s; }
+@keyframes emojiFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+.lp-name {
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-weight: 700;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+  max-width: 500px;
+  min-height: 1.4em;
+}
+.lp-name.placeholder { opacity: 0.3; }
+
+.lp-clock {
+  font-size: clamp(2.4rem, 11vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.lp-clock .cs { font-size: 0.55em; opacity: 0.8; }
+
+/* Creator form panel */
+.creator-panel {
+  flex: 1;
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-top: 1px solid var(--surface-border);
+  border-radius: 24px 24px 0 0;
+  padding: 28px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  max-width: 100%;
+}
+
+.panel-header { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 480px; }
+.logo {
+  font-size: 1.6rem;
+  font-weight: 700;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.03em;
+}
+.logo a { color: inherit; text-decoration: none; }
+.tagline { color: var(--text-dim); font-size: 0.78rem; font-style: italic; }
+
+/* Tools nav */
+.tools-nav { display: flex; gap: 8px; width: 100%; max-width: 480px; flex-wrap: wrap; }
+.tool-link {
+  font-size: 0.72rem; font-weight: 600; padding: 7px 14px; border-radius: 999px;
+  border: 1px solid var(--surface-border); background: var(--surface);
+  color: var(--text-dim); text-decoration: none; transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.tool-link:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+.tool-link.active { color: var(--text); border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+
+.form-body { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 20px; }
+
+.field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.field input[type="text"] {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field input[type="text"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.field input::placeholder { color: var(--text-dim); }
+
+/* Emoji picker + custom input */
+.emoji-section { display: flex; flex-direction: column; gap: 10px; }
+.emoji-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.emoji-btn {
+  width: 40px; height: 40px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: rgba(255,255,255,0.05);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.emoji-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); }
+.emoji-btn.selected { border-color: var(--accent); background: var(--accent-glow); transform: scale(1.1); }
+.emoji-custom-row { display: flex; align-items: center; gap: 8px; }
+.emoji-custom-row span { color: var(--text-dim); font-size: 0.8rem; white-space: nowrap; }
+.emoji-custom-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  max-width: 120px;
+}
+.emoji-custom-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.emoji-custom-input::placeholder { opacity: 0.4; }
+
+/* Theme / vibe selector */
+.theme-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.theme-swatch {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.theme-swatch::before { content: ''; position: absolute; inset: 3px; border-radius: 8px; }
+.theme-swatch:hover { transform: scale(1.08); }
+.theme-swatch.selected { border-color: #fff; transform: scale(1.08); }
+.theme-swatch[data-theme="galaxy"]::before { background: linear-gradient(135deg, #c084fc, #e879f9, #fb7185); }
+.theme-swatch[data-theme="sunset"]::before { background: linear-gradient(135deg, #fb923c, #f97316, #ef4444); }
+.theme-swatch[data-theme="ocean"]::before { background: linear-gradient(135deg, #38bdf8, #22d3ee, #2dd4bf); }
+.theme-swatch[data-theme="neon"]::before { background: linear-gradient(135deg, #a3e635, #facc15, #f97316); }
+.theme-swatch[data-theme="minimal"]::before { background: linear-gradient(135deg, #71717a, #a1a1aa, #d4d4d8); }
+.theme-swatch-label { display: block; font-size: 0.65rem; color: var(--text-dim); text-align: center; margin-top: 4px; font-weight: 500; }
+.theme-option { display: flex; flex-direction: column; align-items: center; }
+
+/* Buttons */
+.btn-row { display: flex; gap: 10px; width: 100%; max-width: 480px; }
+.btn-primary {
+  flex: 1; padding: 14px; border: none; border-radius: var(--radius-sm);
+  background: var(--gradient); color: #fff; font-family: inherit;
+  font-size: 1rem; font-weight: 600; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  overflow: hidden;
+}
+.btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 30px var(--accent-glow); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-secondary {
+  padding: 14px 20px; border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm); background: var(--surface); color: var(--text);
+  font-family: inherit; font-size: 0.95rem; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.btn-secondary:hover { background: var(--surface-hover); border-color: rgba(255,255,255,0.15); }
+
+/* Footer */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+.footer a { color: var(--text-dim); text-decoration: none; transition: color 0.15s; }
+.footer span a { font-weight: 600; }
+.footer span a:hover { color: var(--text); }
+.footer .gh-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  transition: all 0.15s;
+}
+.footer .gh-link:hover { background: var(--surface-hover); border-color: rgba(255,255,255,0.15); color: var(--text); transform: translateY(-1px); }
+.footer .gh-link svg { width: 17px; height: 17px; fill: currentColor; }
+
+/* ---- FULL STOPWATCH MODE ---- */
+#stopwatch {
+  display: none; flex-direction: column; align-items: center;
+  justify-content: center; gap: 22px; padding: 32px 20px;
+  width: 100%; min-height: 100vh; text-align: center;
+}
+#stopwatch.active { display: flex; }
+
+.event-emoji { font-size: 3.5rem; animation: emojiFloat 3s ease-in-out infinite; }
+.event-name {
+  font-size: clamp(1.4rem, 5vw, 2.5rem); font-weight: 700;
+  background: var(--gradient); -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; background-clip: text;
+  line-height: 1.2; max-width: 600px;
+}
+
+.sw-display {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  padding: clamp(18px, 4vw, 32px) clamp(24px, 6vw, 52px);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+.sw-time {
+  font-size: clamp(2.8rem, 13vw, 6rem);
+  font-weight: 700; line-height: 1; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  background: var(--gradient); -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; background-clip: text;
+}
+.sw-time .cs { font-size: 0.5em; opacity: 0.8; }
+
+/* Stopwatch transport controls */
+.transport { display: flex; gap: 12px; align-items: center; }
+.transport .btn-control {
+  padding: 13px 30px; border-radius: 999px; border: none;
+  background: var(--gradient); color: #fff; font-family: inherit;
+  font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  min-width: 130px;
+}
+.transport .btn-control:hover { transform: translateY(-1px); box-shadow: 0 8px 30px var(--accent-glow); }
+.transport .btn-ghost {
+  padding: 13px 24px; border-radius: 999px; border: 1px solid var(--surface-border);
+  background: var(--surface); color: var(--text); font-family: inherit;
+  font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.15s;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.transport .btn-ghost:hover { background: var(--surface-hover); border-color: rgba(255,255,255,0.2); }
+.transport .btn-ghost:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Lap list */
+.laps {
+  width: 100%; max-width: 360px; max-height: 30vh; overflow-y: auto;
+  list-style: none; display: flex; flex-direction: column; gap: 2px;
+}
+.laps:empty { display: none; }
+.lap-row {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: baseline;
+  padding: 9px 14px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--surface-border);
+  font-variant-numeric: tabular-nums; animation: lapIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes lapIn { 0% { transform: translateY(-8px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+.lap-num { font-size: 0.75rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+.lap-split { font-size: 1rem; font-weight: 600; text-align: left; color: var(--text); }
+.lap-total { font-size: 0.82rem; color: var(--text-dim); }
+.lap-row.best .lap-split { color: var(--accent-bright); }
+.lap-row.worst .lap-split { color: #fb7185; }
+
+.sw-actions { display: flex; gap: 12px; margin-top: 2px; }
+.sw-actions button {
+  padding: 10px 20px; border-radius: 999px; border: 1px solid var(--surface-border);
+  background: var(--surface); color: var(--text); font-family: inherit;
+  font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.15s;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.sw-actions button:hover { background: var(--surface-hover); border-color: rgba(255,255,255,0.2); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 32px; left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(20,20,30,0.9); border: 1px solid var(--surface-border);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  color: var(--text); padding: 12px 24px; border-radius: 999px;
+  font-family: inherit; font-size: 0.9rem; font-weight: 500;
+  pointer-events: none;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s;
+  opacity: 0; z-index: 100;
+}
+.toast.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* Responsive */
+@media (max-width: 480px) {
+  .live-preview { min-height: 38vh; padding: 32px 16px 24px; }
+  .creator-panel { padding: 20px 16px 32px; border-radius: 20px 20px 0 0; }
+  .transport { flex-wrap: wrap; justify-content: center; }
+  .sw-actions { flex-direction: column; width: 100%; max-width: 260px; }
+  .sw-actions button { width: 100%; }
+  .btn-row { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-gradient"></div>
+
+<!-- ============ CREATOR MODE ============ -->
+<div id="creator">
+  <div class="live-preview" id="live-preview">
+    <div class="lp-badge">Preview</div>
+    <div class="lp-emoji" id="lp-emoji">⏱️</div>
+    <div class="lp-name placeholder" id="lp-name">Your Stopwatch Name</div>
+    <div class="lp-clock" id="lp-clock">00:00<span class="cs">.00</span></div>
+    <div class="lp-hint">Name it &amp; pick a vibe, then start, lap &amp; share ↓</div>
+  </div>
+
+  <div class="creator-panel">
+    <div class="panel-header">
+      <div class="logo"><a href="../">clockdown</a></div>
+      <div class="tagline">timers that don't suck</div>
+    </div>
+
+    <nav class="tools-nav">
+      <a class="tool-link" href="../">⏰ Countdown</a>
+      <a class="tool-link" href="../timer/">⏲️ Timer</a>
+      <a class="tool-link active" href="./">⏱️ Stopwatch</a>
+    </nav>
+
+    <div class="form-body">
+      <div class="field">
+        <label>Stopwatch Name</label>
+        <input type="text" id="inp-name" placeholder="Lap Splits" maxlength="80" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label>Icon</label>
+        <div class="emoji-section">
+          <div class="emoji-grid" id="emoji-grid"></div>
+          <div class="emoji-custom-row">
+            <span>or type:</span>
+            <input type="text" class="emoji-custom-input" id="emoji-custom" placeholder="🦄" maxlength="8">
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Vibe</label>
+        <div class="theme-grid" id="theme-grid"></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="btn-create">Copy Share Link</button>
+      <button class="btn-secondary" id="btn-fullscreen">Start ↗</button>
+    </div>
+
+    <footer class="footer">
+      <span>made with <a href="../motivation/">spite</a> by <a href="https://spxrogers.com/" target="_blank" rel="noopener">steven</a></span>
+      <a class="gh-link" href="https://github.com/spxrogers/clockdown" target="_blank" rel="noopener" aria-label="View clockdown on GitHub" title="View on GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+    </footer>
+  </div>
+</div>
+
+<!-- ============ FULL STOPWATCH MODE ============ -->
+<div id="stopwatch">
+  <div class="event-emoji" id="sw-emoji"></div>
+  <h1 class="event-name" id="sw-name"></h1>
+  <div class="sw-display">
+    <div class="sw-time" id="sw-time">00:00<span class="cs">.00</span></div>
+  </div>
+  <div class="transport">
+    <button class="btn-control" id="btn-toggle">Start</button>
+    <button class="btn-ghost" id="btn-lap" disabled>Lap</button>
+    <button class="btn-ghost" id="btn-reset" disabled>Reset</button>
+  </div>
+  <ul class="laps" id="laps"></ul>
+  <div class="sw-actions">
+    <button id="btn-share">Share</button>
+    <button id="btn-new">Create Your Own</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="ad-slot"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  const EMOJIS = ['⏱️','🏃','🏊','🚴','🏎️','⚡','🔥','🏆','🥇','⏰','🎯','🎮','🧮','🎬','📊','🐢'];
+  const THEMES = [
+    { id: 'galaxy', label: 'Galaxy' },
+    { id: 'sunset', label: 'Sunset' },
+    { id: 'ocean',  label: 'Ocean'  },
+    { id: 'neon',   label: 'Neon'   },
+    { id: 'minimal',label: 'Minimal'},
+  ];
+  const THEME_STYLES = {
+    galaxy:  { accent: '#c084fc', accentBright: '#e879f9', gradient: 'linear-gradient(135deg, #c084fc, #e879f9, #fb7185)', bgGrad: 'radial-gradient(circle at 30% 40%, rgba(192,132,252,0.12) 0%, transparent 50%), radial-gradient(circle at 70% 60%, rgba(251,113,133,0.08) 0%, transparent 50%)' },
+    sunset:  { accent: '#fb923c', accentBright: '#f97316', gradient: 'linear-gradient(135deg, #fb923c, #f97316, #ef4444)', bgGrad: 'radial-gradient(circle at 30% 40%, rgba(251,146,60,0.15) 0%, transparent 50%), radial-gradient(circle at 70% 60%, rgba(239,68,68,0.10) 0%, transparent 50%)' },
+    ocean:   { accent: '#38bdf8', accentBright: '#22d3ee', gradient: 'linear-gradient(135deg, #38bdf8, #22d3ee, #2dd4bf)', bgGrad: 'radial-gradient(circle at 30% 40%, rgba(56,189,248,0.15) 0%, transparent 50%), radial-gradient(circle at 70% 60%, rgba(45,212,191,0.10) 0%, transparent 50%)' },
+    neon:    { accent: '#a3e635', accentBright: '#facc15', gradient: 'linear-gradient(135deg, #a3e635, #facc15, #f97316)', bgGrad: 'radial-gradient(circle at 30% 40%, rgba(163,230,53,0.15) 0%, transparent 50%), radial-gradient(circle at 70% 60%, rgba(249,115,22,0.10) 0%, transparent 50%)' },
+    minimal: { accent: '#a1a1aa', accentBright: '#d4d4d8', gradient: 'linear-gradient(135deg, #a1a1aa, #d4d4d8, #f4f4f5)', bgGrad: 'radial-gradient(circle at 50% 50%, rgba(161,161,170,0.06) 0%, transparent 50%)' },
+  };
+
+  // ---- STATE ----
+  let selectedEmoji = EMOJIS[0];
+  let selectedTheme = 'galaxy';
+
+  // Runtime stopwatch state
+  let elapsedMs = 0;      // accumulated when paused
+  let startAt = 0;        // wall-clock when the current run began (minus prior elapsed)
+  let running = false;
+  let rafId = null;
+  let laps = [];          // array of cumulative elapsed times (ms) at each lap
+
+  const $ = (s) => document.querySelector(s);
+  const creator = $('#creator');
+  const swEl = $('#stopwatch');
+  const inpName = $('#inp-name');
+  const emojiGrid = $('#emoji-grid');
+  const emojiCustom = $('#emoji-custom');
+  const themeGrid = $('#theme-grid');
+  const btnCreate = $('#btn-create');
+  const btnFullscreen = $('#btn-fullscreen');
+  const btnToggle = $('#btn-toggle');
+  const btnLap = $('#btn-lap');
+  const btnReset = $('#btn-reset');
+  const btnShare = $('#btn-share');
+  const btnNew = $('#btn-new');
+  const lapsEl = $('#laps');
+  const toast = $('#toast');
+
+  // ---- INIT ----
+  function init() {
+    buildEmojiGrid();
+    buildThemeGrid();
+    bindEvents();
+    route();
+  }
+
+  // ---- EMOJI GRID ----
+  function buildEmojiGrid() {
+    EMOJIS.forEach(e => {
+      const btn = document.createElement('button');
+      btn.className = 'emoji-btn' + (e === selectedEmoji ? ' selected' : '');
+      btn.textContent = e;
+      btn.type = 'button';
+      btn.addEventListener('click', () => {
+        selectedEmoji = e;
+        emojiCustom.value = '';
+        emojiGrid.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        updateLivePreview();
+      });
+      emojiGrid.appendChild(btn);
+    });
+  }
+
+  // ---- THEME GRID ----
+  function buildThemeGrid() {
+    THEMES.forEach(t => {
+      const opt = document.createElement('div');
+      opt.className = 'theme-option';
+      const swatch = document.createElement('button');
+      swatch.className = 'theme-swatch' + (t.id === selectedTheme ? ' selected' : '');
+      swatch.setAttribute('data-theme', t.id);
+      swatch.type = 'button';
+      const label = document.createElement('span');
+      label.className = 'theme-swatch-label';
+      label.textContent = t.label;
+      swatch.addEventListener('click', () => {
+        selectedTheme = t.id;
+        themeGrid.querySelectorAll('.theme-swatch').forEach(b => b.classList.remove('selected'));
+        swatch.classList.add('selected');
+        applyTheme(t.id);
+        updateLivePreview();
+      });
+      opt.appendChild(swatch);
+      opt.appendChild(label);
+      themeGrid.appendChild(opt);
+    });
+  }
+
+  // ---- EVENTS ----
+  function bindEvents() {
+    inpName.addEventListener('input', updateLivePreview);
+
+    emojiCustom.addEventListener('input', () => {
+      const val = emojiCustom.value.trim();
+      emojiGrid.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+      if (val) {
+        selectedEmoji = val;
+      } else {
+        selectedEmoji = EMOJIS[0];
+        emojiGrid.querySelectorAll('.emoji-btn').forEach(b => {
+          if (b.textContent === EMOJIS[0]) b.classList.add('selected');
+        });
+      }
+      updateLivePreview();
+    });
+
+    btnCreate.addEventListener('click', copyShareLink);
+    btnFullscreen.addEventListener('click', () => {
+      const url = buildShareURL();
+      if (url) window.location.hash = url.split('#')[1];
+    });
+    btnToggle.addEventListener('click', onToggle);
+    btnLap.addEventListener('click', onLap);
+    btnReset.addEventListener('click', onReset);
+    btnShare.addEventListener('click', shareStopwatch);
+    btnNew.addEventListener('click', () => { window.location.hash = ''; route(); });
+
+    window.addEventListener('hashchange', route);
+
+    updateLivePreview();
+  }
+
+  // ---- ROUTING ----
+  function route() {
+    const params = parseHash();
+    if (params && params.s) showStopwatch(params);
+    else showCreator();
+  }
+
+  function parseHash() {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return null;
+    const params = {};
+    hash.split('&').forEach(pair => {
+      const [k, ...rest] = pair.split('=');
+      if (k && rest.length) params[k] = decodeURIComponent(rest.join('='));
+    });
+    return params;
+  }
+
+  // ---- FORMAT ----
+  // Returns { main: "MM:SS" or "H:MM:SS", cs: "CC" }
+  function fmt(ms) {
+    ms = Math.max(0, ms);
+    const totalCs = Math.floor(ms / 10);
+    const cs = totalCs % 100;
+    const totalSec = Math.floor(totalCs / 100);
+    const s = totalSec % 60;
+    const m = Math.floor(totalSec / 60) % 60;
+    const h = Math.floor(totalSec / 3600);
+    const pad = (n) => String(n).padStart(2, '0');
+    const main = h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+    return { main, cs: pad(cs) };
+  }
+  function clockHTML(ms) {
+    const f = fmt(ms);
+    return `${f.main}<span class="cs">.${f.cs}</span>`;
+  }
+
+  // ---- CREATOR ----
+  function showCreator() {
+    creator.classList.add('active');
+    swEl.classList.remove('active');
+    stopRaf();
+    document.title = 'Clockdown Stopwatch — Count Up With Laps';
+    applyTheme(selectedTheme);
+    updateLivePreview();
+  }
+
+  function updateLivePreview() {
+    const name = inpName.value.trim();
+    $('#lp-emoji').textContent = selectedEmoji;
+    $('#lp-name').textContent = name || 'Your Stopwatch Name';
+    $('#lp-name').classList.toggle('placeholder', !name);
+    $('#lp-clock').innerHTML = clockHTML(0);
+  }
+
+  function buildShareURL() {
+    const name = inpName.value.trim();
+    let hash = `s=1`;
+    if (name) hash += `&n=${encodeURIComponent(name)}`;
+    hash += `&e=${encodeURIComponent(selectedEmoji)}`;
+    if (selectedTheme !== 'galaxy') hash += `&bg=${selectedTheme}`;
+    return window.location.origin + window.location.pathname + '#' + hash;
+  }
+
+  function copyShareLink() {
+    const url = buildShareURL();
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('Link copied! Share it anywhere');
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('Link copied! Share it anywhere');
+    });
+  }
+
+  // ---- FULL STOPWATCH ----
+  function showStopwatch(params) {
+    creator.classList.remove('active');
+    swEl.classList.add('active');
+
+    const name = params.n || '';
+    const emoji = params.e || '⏱️';
+    const theme = params.bg || 'galaxy';
+
+    elapsedMs = 0;
+    running = false;
+    laps = [];
+    stopRaf();
+
+    $('#sw-emoji').textContent = emoji;
+    $('#sw-name').textContent = name;
+    $('#sw-name').style.display = name ? '' : 'none';
+    lapsEl.innerHTML = '';
+
+    document.title = name ? `${name} — Clockdown Stopwatch` : 'Clockdown Stopwatch';
+    applyTheme(theme);
+
+    btnToggle.textContent = 'Start';
+    btnLap.disabled = true;
+    btnReset.disabled = true;
+    render();
+  }
+
+  function currentElapsed() {
+    return running ? (Date.now() - startAt) : elapsedMs;
+  }
+
+  function render() {
+    $('#sw-time').innerHTML = clockHTML(currentElapsed());
+  }
+
+  function loop() {
+    render();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function onToggle() {
+    if (running) {
+      // pause
+      elapsedMs = Date.now() - startAt;
+      running = false;
+      stopRaf();
+      render();
+      btnToggle.textContent = 'Resume';
+      btnLap.disabled = true;
+    } else {
+      // start / resume
+      startAt = Date.now() - elapsedMs;
+      running = true;
+      btnToggle.textContent = 'Pause';
+      btnLap.disabled = false;
+      btnReset.disabled = false;
+      loop();
+    }
+  }
+
+  function onLap() {
+    if (!running) return;
+    laps.push(currentElapsed());
+    renderLaps();
+  }
+
+  function onReset() {
+    stopRaf();
+    running = false;
+    elapsedMs = 0;
+    laps = [];
+    lapsEl.innerHTML = '';
+    btnToggle.textContent = 'Start';
+    btnLap.disabled = true;
+    btnReset.disabled = true;
+    render();
+  }
+
+  function renderLaps() {
+    lapsEl.innerHTML = '';
+    // Compute splits (time between laps)
+    const splits = laps.map((total, i) => total - (i > 0 ? laps[i - 1] : 0));
+    let bestIdx = -1, worstIdx = -1;
+    if (splits.length > 1) {
+      let best = Infinity, worst = -Infinity;
+      splits.forEach((sp, i) => {
+        if (sp < best) { best = sp; bestIdx = i; }
+        if (sp > worst) { worst = sp; worstIdx = i; }
+      });
+    }
+    // Newest lap on top
+    for (let i = laps.length - 1; i >= 0; i--) {
+      const li = document.createElement('li');
+      li.className = 'lap-row' + (i === bestIdx ? ' best' : '') + (i === worstIdx ? ' worst' : '');
+      const sf = fmt(splits[i]);
+      const tf = fmt(laps[i]);
+      li.innerHTML =
+        `<span class="lap-num">Lap ${i + 1}</span>` +
+        `<span class="lap-split">${sf.main}<span class="cs" style="font-size:0.7em;opacity:0.7">.${sf.cs}</span></span>` +
+        `<span class="lap-total">${tf.main}.${tf.cs}</span>`;
+      lapsEl.appendChild(li);
+    }
+  }
+
+  function stopRaf() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  function shareStopwatch() {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: document.title, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url).then(() => showToast('Link copied!')).catch(() => {});
+    }
+  }
+
+  // ---- THEME ----
+  function applyTheme(themeId) {
+    const t = THEME_STYLES[themeId] || THEME_STYLES.galaxy;
+    const root = document.documentElement;
+    root.style.setProperty('--accent', t.accent);
+    root.style.setProperty('--accent-bright', t.accentBright);
+    root.style.setProperty('--gradient', t.gradient);
+    root.style.setProperty('--accent-glow', t.accent + '40');
+    $('.bg-gradient').style.background = t.bgGrad;
+  }
+
+  // ---- TOAST ----
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 2500);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

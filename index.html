@@ -204,6 +204,17 @@ body {
 }
 .tagline { color: var(--text-dim); font-size: 0.78rem; font-style: italic; }
 
+/* Tools nav */
+.tools-nav { display: flex; gap: 8px; width: 100%; max-width: 480px; flex-wrap: wrap; }
+.tool-link {
+  font-size: 0.72rem; font-weight: 600; padding: 7px 14px; border-radius: 999px;
+  border: 1px solid var(--surface-border); background: var(--surface);
+  color: var(--text-dim); text-decoration: none; transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.tool-link:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+.tool-link.active { color: var(--text); border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+
 .form-body { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 20px; }
 
 .field label {
@@ -708,6 +719,12 @@ body {
       <div class="logo">clockdown</div>
       <div class="tagline">timers that don't suck</div>
     </div>
+
+    <nav class="tools-nav">
+      <a class="tool-link active" href="./">⏰ Countdown</a>
+      <a class="tool-link" href="timer/">⏲️ Timer</a>
+      <a class="tool-link" href="stopwatch/">⏱️ Stopwatch</a>
+    </nav>
 
     <div class="form-body">
       <div class="field">
