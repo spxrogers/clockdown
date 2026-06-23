@@ -23,12 +23,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Save site files
+          # Save site files (all static assets, excluding VCS/CI/docs).
+          # Generic copy so new pages/dirs deploy automatically.
           mkdir -p /tmp/site-build
-          cp index.html /tmp/site-build/
-          cp 404.html /tmp/site-build/
-          cp CNAME /tmp/site-build/
-          cp -r motivation /tmp/site-build/
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.gitignore' \
+            --exclude='*.md' \
+            ./ /tmp/site-build/
 
           # Check out gh-pages branch
           git fetch origin gh-pages || true
