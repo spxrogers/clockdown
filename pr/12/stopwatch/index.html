@@ -346,6 +346,9 @@ body {
   -webkit-text-fill-color: transparent; background-clip: text;
 }
 .sw-time .cs { font-size: 0.5em; opacity: 0.8; }
+/* Invisible leading centiseconds: balances the trailing .cs so the
+   prominent MM:SS stays optically centered. */
+.cs-pad { visibility: hidden; }
 
 /* Stopwatch transport controls */
 .transport { display: flex; gap: 12px; align-items: center; }
@@ -428,7 +431,7 @@ body {
     <div class="lp-badge">Preview</div>
     <div class="lp-emoji" id="lp-emoji">⏱️</div>
     <div class="lp-name placeholder" id="lp-name">Your Stopwatch Name</div>
-    <div class="lp-clock" id="lp-clock">00:00<span class="cs">.00</span></div>
+    <div class="lp-clock" id="lp-clock"><span class="cs cs-pad" aria-hidden="true">.00</span>00:00<span class="cs">.00</span></div>
     <div class="lp-hint">Name it &amp; pick a vibe, then start, lap &amp; share ↓</div>
   </div>
 
@@ -486,7 +489,7 @@ body {
   <div class="event-emoji" id="sw-emoji"></div>
   <h1 class="event-name" id="sw-name"></h1>
   <div class="sw-display">
-    <div class="sw-time" id="sw-time">00:00<span class="cs">.00</span></div>
+    <div class="sw-time" id="sw-time"><span class="cs cs-pad" aria-hidden="true">.00</span>00:00<span class="cs">.00</span></div>
   </div>
   <div class="transport">
     <button class="btn-control" id="btn-toggle">Start</button>
@@ -670,7 +673,9 @@ body {
   }
   function clockHTML(ms) {
     const f = fmt(ms);
-    return `${f.main}<span class="cs">.${f.cs}</span>`;
+    // Leading hidden centiseconds balances the visible trailing .cs so the
+    // prominent MM:SS portion stays optically centered.
+    return `<span class="cs cs-pad" aria-hidden="true">.${f.cs}</span>${f.main}<span class="cs">.${f.cs}</span>`;
   }
 
   // ---- CREATOR ----
