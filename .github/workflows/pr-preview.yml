@@ -24,11 +24,17 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin gh-pages || true
 
-          # Create a temporary directory with the PR build
+          # Create a temporary directory with the PR build (all static pages,
+          # excluding VCS/CI/docs and the production-only CNAME). Generic copy
+          # so new pages/dirs preview automatically.
           mkdir -p /tmp/pr-build
-          cp index.html /tmp/pr-build/
-          [ -f 404.html ] && cp 404.html /tmp/pr-build/
-          [ -d motivation ] && cp -r motivation /tmp/pr-build/
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.gitignore' \
+            --exclude='*.md' \
+            --exclude='CNAME' \
+            ./ /tmp/pr-build/
 
           # Check out gh-pages branch (or create it)
           if git rev-parse --verify origin/gh-pages >/dev/null 2>&1; then
@@ -38,10 +44,10 @@ jobs:
             git rm -rf .
           fi
 
-          # Copy PR build into pr/{number}/
+          # Copy PR build into pr/{number}/ (replace any prior contents)
+          rm -rf "pr/${PR_NUMBER}"
           mkdir -p "pr/${PR_NUMBER}"
-          cp /tmp/pr-build/index.html "pr/${PR_NUMBER}/"
-          [ -d /tmp/pr-build/motivation ] && cp -r /tmp/pr-build/motivation "pr/${PR_NUMBER}/"
+          cp -r /tmp/pr-build/. "pr/${PR_NUMBER}/"
 
           # Commit and push
           git add "pr/${PR_NUMBER}"
