@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Deploy to gh-pages branch
         run: |
@@ -48,4 +50,19 @@ jobs:
 
           git add -A
           git diff --cached --quiet || git commit -m "Deploy from main ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
-          git push origin gh-pages
+
+          # Push with rebase-retry to survive concurrent gh-pages writers
+          for attempt in 1 2 3 4 5; do
+            if git push origin gh-pages; then
+              echo "Pushed on attempt ${attempt}"
+              break
+            fi
+            if [ "${attempt}" -eq 5 ]; then
+              echo "Push failed after ${attempt} attempts" >&2
+              exit 1
+            fi
+            echo "Push rejected; rebasing onto latest gh-pages (attempt ${attempt})..."
+            git fetch origin gh-pages
+            git rebase origin/gh-pages || { git rebase --abort; exit 1; }
+            sleep $((attempt * 2))
+          done

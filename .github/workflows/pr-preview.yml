@@ -8,6 +8,12 @@ permissions:
   contents: write
   pull-requests: write
 
+# Share the "pages" group with deploy.yml so production deploys and PR
+# preview deploy/cleanup never write to gh-pages concurrently.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
   deploy-preview:
     if: github.event.action != 'closed'
@@ -16,6 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
 
       - name: Deploy to pr/ subdirectory on gh-pages
         run: |
@@ -49,10 +56,23 @@ jobs:
           mkdir -p "pr/${PR_NUMBER}"
           cp -r /tmp/pr-build/. "pr/${PR_NUMBER}/"
 
-          # Commit and push
+          # Commit and push (rebase-retry to survive concurrent gh-pages writers)
           git add "pr/${PR_NUMBER}"
           git commit -m "Deploy preview for PR #${PR_NUMBER}" --allow-empty
-          git push origin gh-pages
+          for attempt in 1 2 3 4 5; do
+            if git push origin gh-pages; then
+              echo "Pushed on attempt ${attempt}"
+              break
+            fi
+            if [ "${attempt}" -eq 5 ]; then
+              echo "Push failed after ${attempt} attempts" >&2
+              exit 1
+            fi
+            echo "Push rejected; rebasing onto latest gh-pages (attempt ${attempt})..."
+            git fetch origin gh-pages
+            git rebase origin/gh-pages || { git rebase --abort; exit 1; }
+            sleep $((attempt * 2))
+          done
 
       - name: Comment preview URL
         uses: actions/github-script@v7
@@ -95,6 +115,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: gh-pages
+          fetch-depth: 0
 
       - name: Remove PR preview
         run: |
@@ -105,5 +126,20 @@ jobs:
           if [ -d "pr/${PR_NUMBER}" ]; then
             git rm -rf "pr/${PR_NUMBER}"
             git commit -m "Remove preview for PR #${PR_NUMBER}"
-            git push origin gh-pages
+            # Push with rebase-retry to survive concurrent gh-pages writers
+            # (e.g. the production deploy triggered by the same merge).
+            for attempt in 1 2 3 4 5; do
+              if git push origin gh-pages; then
+                echo "Pushed on attempt ${attempt}"
+                break
+              fi
+              if [ "${attempt}" -eq 5 ]; then
+                echo "Push failed after ${attempt} attempts" >&2
+                exit 1
+              fi
+              echo "Push rejected; rebasing onto latest gh-pages (attempt ${attempt})..."
+              git fetch origin gh-pages
+              git rebase origin/gh-pages || { git rebase --abort; exit 1; }
+              sleep $((attempt * 2))
+            done
           fi
