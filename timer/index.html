@@ -670,6 +670,7 @@ body {
   let finished = false;
   let tickInterval = null;
   let confettiActive = false;
+  let autoStart = false;  // when the creator hits Start ↗, run the timer on arrival
 
   const $ = (s) => document.querySelector(s);
   const creator = $('#creator');
@@ -808,7 +809,10 @@ body {
     btnCreate.addEventListener('click', copyShareLink);
     btnFullscreen.addEventListener('click', () => {
       const url = buildShareURL();
-      if (url) window.location.hash = url.split('#')[1];
+      if (url) {
+        autoStart = true;
+        window.location.hash = url.split('#')[1];
+      }
     });
     btnToggle.addEventListener('click', onToggle);
     btnReset.addEventListener('click', onReset);
@@ -932,6 +936,12 @@ body {
     btnToggle.textContent = 'Start';
     btnReset.disabled = true;
     renderTimer();
+
+    // Creator hit "Start ↗" — launch the running timer in one click.
+    if (autoStart) {
+      autoStart = false;
+      onToggle();
+    }
   }
 
   function renderTimer() {
