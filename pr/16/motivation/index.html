@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GPPMHQSYHJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-GPPMHQSYHJ');
+</script>
+<title>Why Clockdown? — The Motivation</title>
+<meta name="description" content="Why I built clockdown — a simple, social-first countdown timer that doesn't suck.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0f;
+  --surface: rgba(255,255,255,0.04);
+  --surface-border: rgba(255,255,255,0.08);
+  --surface-hover: rgba(255,255,255,0.07);
+  --text: #f0f0f5;
+  --text-dim: rgba(255,255,255,0.5);
+  --accent: #c084fc;
+  --accent-bright: #e879f9;
+  --gradient: linear-gradient(135deg, #c084fc, #e879f9, #fb7185);
+}
+
+html { height: 100%; }
+
+body {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100%;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- ANIMATED GRADIENT BACKGROUND (matches index) ---- */
+.bg-gradient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+.bg-gradient::before {
+  content: '';
+  position: absolute;
+  width: 150vmax;
+  height: 150vmax;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 30% 40%, rgba(192,132,252,0.12) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(251,113,133,0.08) 0%, transparent 50%),
+              radial-gradient(circle at 50% 50%, rgba(232,121,249,0.06) 0%, transparent 60%);
+  animation: bgPulse 12s ease-in-out infinite alternate;
+}
+@keyframes bgPulse {
+  0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) scale(1.1) rotate(15deg); }
+}
+
+.motivation {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 56px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+/* Brand / header link back home */
+.brand {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  text-decoration: none;
+  width: fit-content;
+}
+.logo {
+  font-size: 1.6rem;
+  font-weight: 700;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.03em;
+}
+.brand .tagline { color: var(--text-dim); font-size: 0.78rem; font-style: italic; }
+
+/* Article content */
+.content h1 {
+  font-size: clamp(2.2rem, 9vw, 3.5rem);
+  font-weight: 700;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 28px;
+}
+.content p {
+  font-size: 1.08rem;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.78);
+  margin-bottom: 22px;
+}
+.content p:last-of-type { margin-bottom: 0; }
+.content em { color: var(--text); font-style: italic; }
+.content s {
+  color: var(--text-dim);
+  text-decoration-thickness: 2px;
+  text-decoration-color: rgba(255,255,255,0.4);
+}
+.content .signature {
+  color: var(--text-dim);
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* Back link */
+.back-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 12px 24px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  transition: all 0.2s ease;
+}
+.back-link:hover {
+  background: var(--surface-hover);
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+}
+</style>
+</head>
+<body>
+<div class="bg-gradient"></div>
+
+<main class="motivation">
+  <a class="brand" href="../">
+    <span class="logo">clockdown</span>
+    <span class="tagline">timers that don't suck</span>
+  </a>
+
+  <article class="content">
+    <h1>Why?</h1>
+    <p>
+      One evening, I wanted to create an online, shareable countdown timer for a
+      friend-group dinner — a simple, silly way to share some excitement ahead of
+      reconnecting. <s>Googling</s> searching for a clean, simple countdown website
+      was a PITA. The UX on every one: dated. The selector forms: awful. They were
+      riddled with overbearing ads — and worst of all, none of them highlighted the
+      event or the timer at all. Not one would pass a production UX review.
+    </p>
+    <p>
+      Simply put, <em>the vibes were off</em> — and all of the existing timers sucked.
+    </p>
+    <p>
+      So I made clockdown: a simple, social-first countdown app for
+      Timers&nbsp;that&nbsp;Don't&nbsp;Suck™️.
+    </p>
+    <p class="signature">— SR</p>
+  </article>
+
+  <a class="back-link" href="../">← Back to clockdown</a>
+</main>
+</body>
+</html>
