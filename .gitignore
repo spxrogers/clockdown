@@ -1,2 +1,6 @@
 **/.claude/settings.local.json
 **/.playwright-mcp/*
+
+# Fonts and scratch files fetched by tools/og/build.mjs
+tools/og/.fonts/
+tools/og/.build/

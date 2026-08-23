@@ -33,6 +33,7 @@ jobs:
             --exclude='.github' \
             --exclude='.gitignore' \
             --exclude='*.md' \
+            --exclude='tools' \
             ./ /tmp/site-build/
 
           # Check out gh-pages branch
