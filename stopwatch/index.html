@@ -13,6 +13,25 @@
 </script>
 <title>Clockdown Stopwatch — Count Up With Laps</title>
 <meta name="description" content="A beautiful, shareable stopwatch with pause, resume, and lap splits. Name it, pick a vibe, share the link. No signup, no ads, no bloat.">
+
+<!-- Rich link previews (iMessage, Slack, X, Facebook, WhatsApp). These are
+     static: link unfurlers never run JS and never receive the #hash, so the
+     individual counter's name cannot appear here. See tools/og/README.md. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Clockdown">
+<meta property="og:url" content="https://clockdown.us/stopwatch/">
+<meta property="og:title" content="Clockdown Stopwatch — Count Up With Laps">
+<meta property="og:description" content="A beautiful, shareable stopwatch with pause, resume, and lap splits. Name it, pick a vibe, share the link. No signup, no ads, no bloat.">
+<meta property="og:image" content="https://clockdown.us/og/stopwatch.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Clockdown Stopwatch wordmark above digits reading 0 hours, 12 minutes, 47 seconds.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Clockdown Stopwatch — Count Up With Laps">
+<meta name="twitter:description" content="A beautiful, shareable stopwatch with pause, resume, and lap splits. Name it, pick a vibe, share the link. No signup, no ads, no bloat.">
+<meta name="twitter:image" content="https://clockdown.us/og/stopwatch.png">
+<meta name="twitter:image:alt" content="The Clockdown Stopwatch wordmark above digits reading 0 hours, 12 minutes, 47 seconds.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -830,10 +849,17 @@ body {
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
   }
 
+  // Link unfurlers never receive the #hash, so the preview card that renders in
+  // iMessage/Slack/etc is always the generic one and can't name this counter.
+  // Passing the name as share `text` puts it in the message body itself, just
+  // above the card -- the one place the name does come through.
   function shareStopwatch() {
     const url = window.location.href;
+    const emoji = ($('#sw-emoji').textContent || '⏱️').trim();
+    const name = $('#sw-name').textContent.trim();
+    const text = name ? `${emoji} ${name} \u2014 stopwatch running on Clockdown` : 'Stopwatch running on Clockdown';
     if (navigator.share) {
-      navigator.share({ title: document.title, url }).catch(() => {});
+      navigator.share({ title: document.title, text, url }).catch(() => {});
     } else {
       navigator.clipboard.writeText(url).then(() => showToast('Link copied!')).catch(() => {});
     }

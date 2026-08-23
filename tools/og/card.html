@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @font-face { font-family: 'Space Grotesk'; font-weight: 500; src: url('sg-500.ttf') format('truetype'); }
+  @font-face { font-family: 'Space Grotesk'; font-weight: 700; src: url('sg-700.ttf') format('truetype'); }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: rgba(255,255,255,0.04);
+    --surface-border: rgba(255,255,255,0.08);
+    --text: #f0f0f5;
+    --text-dim: rgba(255,255,255,0.5);
+    --gradient: linear-gradient(135deg, #c084fc, #e879f9, #fb7185);
+  }
+
+  html { width: 1200px; height: 630px; background: var(--bg); }
+  body {
+    width: 1200px;
+    height: 630px;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Same layered radial glow as the live site's animated backdrop, frozen. */
+  /* Absolute (not fixed) so it fills the 630px page box, not the viewport --
+     headless Chromium's viewport is shorter than the page it screenshots. */
+  .bg-gradient {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1200px; height: 630px;
+    overflow: hidden;
+  }
+  .bg-gradient::before {
+    content: '';
+    position: absolute;
+    width: 1800px; height: 1800px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1.05) rotate(8deg);
+    background: radial-gradient(circle at 30% 40%, rgba(192,132,252,0.20) 0%, transparent 50%),
+                radial-gradient(circle at 70% 60%, rgba(251,113,133,0.13) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(232,121,249,0.10) 0%, transparent 60%);
+  }
+
+  .frame {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 34px;
+    padding: 56px 64px;
+    text-align: center;
+  }
+
+  .wordmark {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .wordmark .sub {
+    -webkit-text-fill-color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .timer-grid { display: flex; gap: 18px; align-items: center; }
+  .timer-unit { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .timer-digits {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 20px;
+    padding: 22px 30px;
+    min-width: 148px;
+    overflow: hidden;
+  }
+  /* The hairline split that makes the tiles read as flip-clock cards. */
+  .timer-digits::after {
+    content: '';
+    position: absolute; left: 8%; right: 8%; top: 50%;
+    height: 1px; background: rgba(255,255,255,0.06);
+  }
+  .digit-value {
+    display: block;
+    font-size: 96px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .digit-label {
+    font-size: 17px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+  }
+  .timer-colon {
+    font-size: 56px;
+    font-weight: 700;
+    color: var(--text-dim);
+    margin-bottom: 40px;
+  }
+
+  .headline {
+    font-size: 46px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    max-width: 900px;
+  }
+
+  .footnote {
+    font-size: 21px;
+    font-weight: 500;
+    color: var(--text-dim);
+    letter-spacing: 0.01em;
+  }
+</style>
+</head>
+<body>
+<div class="bg-gradient"></div>
+<div class="frame">
+  <div class="wordmark">clockdown<span class="sub" data-slot="sub"></span></div>
+  <div class="timer-grid" data-slot="grid"></div>
+  <div class="headline" data-slot="headline"></div>
+  <div class="footnote" data-slot="footnote"></div>
+</div>
+</body>
+</html>
