@@ -901,6 +901,12 @@ body {
   })();
   const DETECTED_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+  // Cities with no IANA zone of their own (e.g. Dallas uses America/Chicago)
+  // but that people search by city name.
+  const CITY_ALIASES = {
+    'america/chicago': ['dallas'],
+  };
+
   function tzOffsetLabel(tz) {
     try {
       const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' });
@@ -1187,12 +1193,19 @@ body {
       list.innerHTML = '';
       const q = (filter || '').toLowerCase();
       const filtered = q
-        ? ALL_TIMEZONES.filter(tz => tz.toLowerCase().includes(q) || tzOffsetLabel(tz).toLowerCase().includes(q))
+        ? ALL_TIMEZONES.filter(tz => {
+            const key = tz.toLowerCase();
+            return key.includes(q) || tzOffsetLabel(tz).toLowerCase().includes(q) ||
+              (CITY_ALIASES[key] || []).some(alias => alias.includes(q));
+          })
         : ALL_TIMEZONES;
       filtered.slice(0, 50).forEach(tz => {
         const li = document.createElement('li');
         li.className = 'tz-option' + (tz === selectedTz ? ' active' : '');
-        li.textContent = tzFriendlyName(tz);
+        const matchedAlias = q && (CITY_ALIASES[tz.toLowerCase()] || []).find(alias => alias.includes(q));
+        li.textContent = matchedAlias
+          ? `${tzFriendlyName(tz)} — ${matchedAlias.replace(/\b\w/g, c => c.toUpperCase())}`
+          : tzFriendlyName(tz);
         li.addEventListener('click', (e) => {
           e.stopPropagation();
           selectedTz = tz;
