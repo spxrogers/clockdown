@@ -922,7 +922,7 @@ button.row:active { background: var(--fill); }
 
 /* Stopwatch */
 .stage-body.top { justify-content: flex-start; padding-top: clamp(16px, 7vh, 80px); }
-.stage .sw-time { font-size: clamp(3.25rem, 17vw, 7.5rem); view-transition-name: v-digits; }
+.stage .sw-time { font-size: clamp(3.25rem, 17vw, 7.5rem); } /* .digits wrapper carries v-digits; naming both aborts the transition */
 .laps { list-style: none; width: 100%; max-width: 21rem; margin-top: 4px; text-align: left; }
 .lap {
   position: relative;
