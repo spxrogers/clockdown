@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: read   # to list open PRs when pruning stale previews
 
 concurrency:
   group: pages
@@ -21,6 +22,8 @@ jobs:
           fetch-depth: 0
 
       - name: Deploy to gh-pages branch
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -45,15 +48,65 @@ jobs:
             git rm -rf .
           fi
 
-          # Replace root files but preserve pr/ directory
-          find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name 'pr' -exec rm -rf {} +
-          cp -r /tmp/site-build/* .
+          # Prune previews whose PR is no longer open. The PR-close cleanup in
+          # pr-preview.yml normally removes them, but it can be skipped: the
+          # shared "pages" concurrency group keeps only one pending run, so a
+          # burst of writers can cancel a queued cleanup, and a GitHub outage
+          # can outlast its push retries. This sweeps any orphan on the next
+          # production deploy that runs (or a manual run of this workflow).
+          #
+          # Fail safe: prune only when the open-PR list is known to be complete.
+          # If gh fails, times out, or returns a possibly truncated list, skip
+          # pruning rather than delete previews of PRs that are still open.
+          PR_LIMIT=1000
+          prune_stale_previews() {
+            [ -d pr ] || return 0
+            local open count dir n pruned=""
+            if ! open=$(timeout 60 gh pr list --repo "${GITHUB_REPOSITORY}" --state open \
+                --limit "${PR_LIMIT}" --json number --jq '.[].number'); then
+              echo "::warning::Could not list open PRs; skipping stale preview pruning"
+              return 0
+            fi
+            count=$(printf '%s\n' "$open" | grep -c . || true)
+            # Written so a failed comparison (e.g. a non-numeric count) skips too.
+            if ! [ "$count" -lt "$PR_LIMIT" ]; then
+              echo "::warning::${count} open PRs (list may be truncated); skipping stale preview pruning"
+              return 0
+            fi
+            for dir in pr/*/; do
+              n=$(basename "$dir")
+              case "$n" in ''|*[!0-9]*) continue ;; esac   # only pr/<number>/
+              # Whole-line match against the list, without a pipe.
+              case $'\n'"${open}"$'\n' in
+                *$'\n'"${n}"$'\n'*) ;;                      # PR is open: keep
+                *) git rm -rf --quiet "pr/${n}"; pruned="${pruned} #${n}" ;;
+              esac
+            done
+            if [ -n "$pruned" ]; then
+              echo "Pruned stale previews:${pruned}"
+              git commit -m "Remove stale PR previews:${pruned}"
+            else
+              echo "No stale previews to prune"
+            fi
+          }
 
-          git add -A
-          git diff --cached --quiet || git commit -m "Deploy from main ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+          # One deploy attempt on top of the current gh-pages tip: prune, then
+          # replace root files (preserving pr/) with the site build.
+          deploy_attempt() {
+            prune_stale_previews
+            find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name 'pr' -exec rm -rf {} +
+            cp -r /tmp/site-build/* .
+            git add -A
+            git diff --cached --quiet || git commit -m "Deploy from main ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+          }
 
-          # Push with rebase-retry to survive concurrent gh-pages writers
+          # Push with retry. On rejection, rebuild the attempt from the fresh
+          # gh-pages tip instead of rebasing: a rebased prune commit would
+          # replay a decision made from a stale PR list (deleting a preview a
+          # reopened PR just re-pushed), and could conflict with a concurrent
+          # change to a pruned preview and abort the whole deploy.
           for attempt in 1 2 3 4 5; do
+            deploy_attempt
             if git push origin gh-pages; then
               echo "Pushed on attempt ${attempt}"
               break
@@ -62,8 +115,16 @@ jobs:
               echo "Push failed after ${attempt} attempts" >&2
               exit 1
             fi
-            echo "Push rejected; rebasing onto latest gh-pages (attempt ${attempt})..."
-            git fetch origin gh-pages
-            git rebase origin/gh-pages || { git rebase --abort; exit 1; }
+            # If main has moved on, a newer deploy is queued or has already
+            # published; rebuilding now could overwrite it with this older site.
+            if [ "${GITHUB_EVENT_NAME}" = "push" ] && git fetch --quiet origin main \
+                && [ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]; then
+              echo "main moved past ${GITHUB_SHA}; leaving the deploy to the newer run"
+              exit 0
+            fi
+            echo "Push rejected; rebuilding on the latest gh-pages (attempt ${attempt})..."
             sleep $((attempt * 2))
+            git fetch origin gh-pages
+            git reset --hard --quiet origin/gh-pages
+            git clean -fdq
           done
