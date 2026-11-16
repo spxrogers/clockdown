@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: read   # to list open PRs when pruning stale previews
 
 concurrency:
   group: pages
@@ -21,6 +22,8 @@ jobs:
           fetch-depth: 0
 
       - name: Deploy to gh-pages branch
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -43,6 +46,36 @@ jobs:
           else
             git checkout --orphan gh-pages
             git rm -rf .
+          fi
+
+          # Prune previews whose PR is no longer open. The PR-close cleanup in
+          # pr-preview.yml normally removes them, but it can be skipped: the
+          # shared "pages" concurrency group keeps only one pending run, so a
+          # burst of writers can cancel a queued cleanup, and a GitHub outage
+          # can outlast its push retries. Every merge to main runs this, so any
+          # orphan is swept by the next deploy (or by running this workflow
+          # manually). If the open-PR list can't be fetched, skip pruning
+          # rather than treat "unknown" as "none open" and delete everything.
+          if [ -d pr ]; then
+            if OPEN_PRS=$(gh pr list --repo "${GITHUB_REPOSITORY}" --state open --limit 1000 --json number --jq '.[].number'); then
+              PRUNED=""
+              for dir in pr/*/; do
+                n=$(basename "$dir")
+                case "$n" in ''|*[!0-9]*) continue ;; esac   # only pr/<number>/
+                if ! printf '%s\n' "$OPEN_PRS" | grep -qx "$n"; then
+                  git rm -rf --quiet "pr/${n}"
+                  PRUNED="${PRUNED} #${n}"
+                fi
+              done
+              if [ -n "$PRUNED" ]; then
+                echo "Pruned stale previews:${PRUNED}"
+                git commit -m "Remove stale PR previews:${PRUNED}"
+              else
+                echo "No stale previews to prune"
+              fi
+            else
+              echo "::warning::Could not list open PRs; skipping stale preview pruning"
+            fi
           fi
 
           # Replace root files but preserve pr/ directory
