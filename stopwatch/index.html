@@ -912,14 +912,17 @@ button.row:active { background: var(--fill); }
 .ring .track { stroke: var(--fill); }
 .ring .prog { stroke: var(--accent); stroke-linecap: round; }
 .ring-center { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.ring-num { font-size: clamp(3rem, 17vw, 5.25rem); }
-.ring-num.long { font-size: clamp(2.5rem, 13vw, 4.25rem); }
+/* Sized to the ring, not the viewport, so the digits always sit inside it.
+   Needs .stage specificity to beat the countdown's `.stage .num` size. */
+.ring-wrap { container-type: inline-size; }
+.stage .ring-num { font-size: clamp(3rem, 17vw, 5.25rem); font-size: 25cqi; }
+.stage .ring-num.long { font-size: clamp(2.5rem, 13vw, 4.25rem); font-size: 19cqi; }
 .ring-caption { min-height: 1.4em; font-size: 0.9375rem; font-weight: 500; color: var(--label-2); letter-spacing: -0.004em; font-variant-numeric: tabular-nums; }
 .ring-caption.done { color: var(--accent); font-weight: 700; font-size: 1.0625rem; }
 
 /* Stopwatch */
 .stage-body.top { justify-content: flex-start; padding-top: clamp(16px, 7vh, 80px); }
-.sw-time { font-size: clamp(3.25rem, 17vw, 7.5rem); view-transition-name: v-digits; }
+.stage .sw-time { font-size: clamp(3.25rem, 17vw, 7.5rem); view-transition-name: v-digits; }
 .laps { list-style: none; width: 100%; max-width: 21rem; margin-top: 4px; text-align: left; }
 .lap {
   position: relative;
