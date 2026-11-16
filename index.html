@@ -680,6 +680,24 @@ button.row:active { background: var(--fill); }
 }
 .emoji-btn:not([aria-pressed="true"]):active { background: var(--fill); }
 .emoji-custom { border: 0; outline: none; color: var(--label); width: 4.5rem; flex: none; text-align: center; padding: 0.3125rem 0; border-radius: 8px; background: var(--fill); font-size: 1.25rem; }
+/* Terminal-style underscore caret. Native where supported; elsewhere CD.underscoreCaret()
+   hides the native bar and draws this one in its place. */
+.emoji-custom { caret-shape: underscore; caret-color: var(--label); }
+.emoji-field { position: relative; display: inline-flex; flex: none; }
+.emoji-field.fake .emoji-custom { caret-color: transparent; }
+.ucaret {
+  position: absolute;
+  left: 0;
+  bottom: 0.3125rem;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--label);
+  pointer-events: none;
+  visibility: hidden;
+}
+.emoji-field.on .ucaret { visibility: visible; animation: ucaret-blink 1.06s steps(1, end) 0.5s infinite; }
+@keyframes ucaret-blink { 50% { visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .emoji-field.on .ucaret { animation: none; } }
 
 /* ---- Theme swatches ---- */
 .swatches { display: flex; justify-content: space-between; gap: 2px; padding: 16px 10px 12px; }
@@ -1662,8 +1680,53 @@ const CD = (function () {
   }
 
   /* ---------- Emoji grid + theme swatches (shared by every creator) ---------- */
+  /* Underscore caret for browsers without `caret-shape: underscore`: hide the
+     native bar and draw an underscore in the cell where the next character goes.
+     Blinks like a terminal, and holds solid for a moment after each keystroke. */
+  function underscoreCaret(input) {
+    if (window.CSS && CSS.supports && CSS.supports('caret-shape', 'underscore')) return;
+    const wrap = document.createElement('span');
+    wrap.className = 'emoji-field fake';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    const caret = document.createElement('span');
+    caret.className = 'ucaret';
+    caret.setAttribute('aria-hidden', 'true');
+    wrap.appendChild(caret);
+    const ctx = document.createElement('canvas').getContext('2d');
+
+    function place() {
+      const focused = document.activeElement === input;
+      const collapsed = input.selectionStart === input.selectionEnd;
+      wrap.classList.toggle('on', focused && collapsed);
+      if (!focused || !collapsed) return;
+      const cs = getComputedStyle(input);
+      ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const val = input.value;
+      const pos = input.selectionStart == null ? val.length : input.selectionStart;
+      const padL = parseFloat(cs.paddingLeft) || 0, padR = parseFloat(cs.paddingRight) || 0;
+      const box = input.clientWidth - padL - padR;
+      const cell = parseFloat(cs.fontSize) * 0.75;
+      const full = ctx.measureText(val).width;
+      // Text is centred: an empty field centres the underscore, otherwise it sits after the character before it.
+      let x = val
+        ? padL + Math.max(0, (box - full) / 2) + ctx.measureText(val.slice(0, pos)).width - input.scrollLeft
+        : padL + (box - cell) / 2;
+      x = clamp(x, padL, input.clientWidth - padR - cell);
+      caret.style.width = cell + 'px';
+      caret.style.transform = `translateX(${x.toFixed(1)}px)`;
+      // Restart the blink so the caret stays solid while typing.
+      caret.style.animation = 'none';
+      void caret.offsetWidth;
+      caret.style.animation = '';
+    }
+    ['focus', 'blur', 'input', 'keyup', 'click', 'select'].forEach(ev => input.addEventListener(ev, place));
+    document.addEventListener('selectionchange', () => { if (document.activeElement === input) place(); });
+  }
+
   function emojiPicker(grid, custom, emojis, initial, onPick) {
     let current = initial;
+    underscoreCaret(custom);
     const btns = emojis.map(e => {
       const b = document.createElement('button');
       b.type = 'button';
