@@ -68,7 +68,8 @@ jobs:
               return 0
             fi
             count=$(printf '%s\n' "$open" | grep -c . || true)
-            if [ "$count" -ge "$PR_LIMIT" ]; then
+            # Written so a failed comparison (e.g. a non-numeric count) skips too.
+            if ! [ "$count" -lt "$PR_LIMIT" ]; then
               echo "::warning::${count} open PRs (list may be truncated); skipping stale preview pruning"
               return 0
             fi
@@ -113,6 +114,13 @@ jobs:
             if [ "${attempt}" -eq 5 ]; then
               echo "Push failed after ${attempt} attempts" >&2
               exit 1
+            fi
+            # If main has moved on, a newer deploy is queued or has already
+            # published; rebuilding now could overwrite it with this older site.
+            if [ "${GITHUB_EVENT_NAME}" = "push" ] && git fetch --quiet origin main \
+                && [ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]; then
+              echo "main moved past ${GITHUB_SHA}; leaving the deploy to the newer run"
+              exit 0
             fi
             echo "Push rejected; rebuilding on the latest gh-pages (attempt ${attempt})..."
             sleep $((attempt * 2))
