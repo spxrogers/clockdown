@@ -199,24 +199,25 @@ button { cursor: pointer; background: none; border: 0; }
    while you fill in the form. Tap it to jump back to the full card. */
 .mini {
   position: absolute;
-  top: calc(100% + 2px);
+  top: calc(100% + 6px);
   left: 50%;
   width: min(calc(100% - 32px), 32rem);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 16px 9px 12px;
+  gap: 12px;
+  min-height: 68px;
+  padding: 12px 18px 12px 14px;
   border: 0;
-  border-radius: 18px;
+  border-radius: 22px;
   overflow: hidden;
   isolation: isolate;
   color: var(--label);
   font: inherit;
   text-align: left;
-  background: var(--material);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: var(--shadow-lg);
+  background: color-mix(in srgb, var(--bg-3) 86%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: inset 0 0 0 0.5px var(--sep), 0 2px 6px rgba(0,0,0,0.12), 0 14px 36px rgba(0,0,0,0.28);
   opacity: 0;
   transform: translate(-50%, -10px) scale(0.96);
   pointer-events: none;
@@ -233,19 +234,18 @@ button { cursor: pointer; background: none; border: 0; }
 }
 .mini.on { opacity: 1; transform: translate(-50%, 0) scale(1); pointer-events: auto; }
 .mini.on:active { transform: translate(-50%, 0) scale(0.97); }
-.mini-emoji { font-size: 1.375rem; line-height: 1; flex: none; }
-.mini-name {
-  flex: 1;
-  min-width: 0;
+.mini-emoji { font-size: 1.875rem; line-height: 1; flex: none; }
+.mini-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mini-name, .mini-caption {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
 }
+.mini-name { font-size: 1rem; font-weight: 600; letter-spacing: -0.012em; line-height: 1.25; }
+.mini-caption { font-size: 0.75rem; line-height: 1.3; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.mini-caption:empty { display: none; }
 .mini-name.placeholder { color: var(--label-3); }
-.mini .num { flex: none; font-size: 1.25rem; }
+.mini .num { flex: none; font-size: 1.625rem; }
 @media (min-width: 920px) { .mini { display: none; } }
 @media (prefers-reduced-motion: reduce) {
   .mini, .mini.on, .mini.on:active { transform: translate(-50%, 0); }
@@ -1426,9 +1426,11 @@ const CD = (function () {
     // Purely a visual convenience; the full card stays in the accessibility tree.
     mini.setAttribute('aria-hidden', 'true');
     mini.tabIndex = -1;
-    mini.innerHTML = '<span class="mini-emoji"></span><span class="mini-name"></span><span class="num"></span>';
+    mini.innerHTML = '<span class="mini-emoji"></span><span class="mini-text"><span class="mini-name"></span><span class="mini-caption"></span></span><span class="num"></span>';
     bar.appendChild(mini);
-    const [mEmoji, mName, mNum] = mini.children;
+    const mEmoji = mini.querySelector('.mini-emoji'), mName = mini.querySelector('.mini-name');
+    const mCaption = mini.querySelector('.mini-caption'), mNum = mini.querySelector('.num');
+    const srcCaption = card.querySelector('.card-caption');
     const srcEmoji = card.querySelector('.card-emoji');
     const srcName = card.querySelector('.card-title');
     const valueOf = el => el._slots ? el._slots.map(s => s.ch).join('') : el.textContent;
@@ -1438,6 +1440,7 @@ const CD = (function () {
       syncRaf = 0;
       mEmoji.textContent = srcEmoji ? srcEmoji.textContent : '';
       mName.textContent = srcName ? srcName.textContent : '';
+      mCaption.textContent = srcCaption ? srcCaption.textContent : '';
       mName.classList.toggle('placeholder', !!srcName && srcName.classList.contains('placeholder'));
       const v = Array.from(digits.querySelectorAll('.num'), valueOf);
       // Countdown: days, hours, minutes, seconds. Drop the days while there are none.
