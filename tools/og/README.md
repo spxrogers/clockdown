@@ -21,15 +21,27 @@ only `og/` is published.
   CHROME_BIN=/usr/bin/chromium node tools/og/build.mjs
   ```
 
-Space Grotesk is downloaded from Google Fonts on first run and cached in
-`.fonts/` (gitignored), so no font binaries live in the repo.
+Inter is downloaded from Google Fonts on first run and cached in `.fonts/`
+(gitignored), so no font binaries live in the repo. The live site uses the
+platform's system font (SF Pro on Apple devices), which can't be fetched or
+redistributed; Inter is the closest open match, and pinning it keeps renders
+identical on every machine.
 
 ## Editing a card
 
-`card.html` is the shared layout; the per-card text and digits live in the
-`CARDS` array in `build.mjs`. The layout deliberately mirrors the live
-countdown — same palette, same glass digit tiles, same gradient-clipped
-numerals — so the preview looks like the page it links to.
+`card.html` is the shared layout; the per-card text, visual and colour live in
+the `CARDS` array in `build.mjs`. The layout deliberately mirrors the live
+counter page in dark appearance — black, white tabular numerals, no tiles, and
+one soft two-colour wash — so the preview looks like the page it links to.
+
+Each card's colour is a `palette: { h1, h2, c }`: two OKLCH hues and a chroma,
+the same shape the site derives from a counter's emoji (see `CD.paint()` in
+any page). The countdown card uses the palette of its default emoji, 🎉; the
+timer is tomato red; the stopwatch is pool blue.
+
+The cards show no event name or emoji on purpose: unfurlers can't see which
+counter a link is for (see below), so a specific event would mislead whoever
+receives a link to a different one.
 
 ## Why the render is fiddly
 
@@ -45,20 +57,19 @@ Two headless Chromium quirks are worked around in `build.mjs` and `crop.mjs`:
    per-pixel noise dominates the file size. The PNG spec's minimum-sum filter
    heuristic picks badly for it. Measured on these cards:
 
-   | filter | size |
+   | filter | size (avg per card) |
    | --- | --- |
-   | None | 459 KB |
-   | **Sub (used)** | **442 KB** |
-   | Up | 613 KB |
-   | Average | 556 KB |
-   | Paeth | 530 KB |
-   | spec heuristic | 541 KB |
+   | None | 138 KB |
+   | **Sub (used)** | **130 KB** |
+   | Up | 172 KB |
+   | Average | 161 KB |
+   | Paeth | 150 KB |
 
    Dropping the fully-opaque alpha channel saves another 25% of raw bytes.
-   Re-measure if the card design changes materially. The glow is what costs the
-   space — a flat background compresses to 45 KB — but it is also what makes the
-   card look like the product, so it stays. Browsers never fetch these; only
-   link unfurlers do, once, and they cache.
+   Re-measure if the card design changes materially. The wash is what costs
+   the space, but it is also what makes the card look like the product, so it
+   stays. Browsers never fetch these; only link unfurlers do, once, and they
+   cache.
 
 ## What these cards cannot do
 
