@@ -3,49 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <style>
-  @font-face { font-family: 'Space Grotesk'; font-weight: 500; src: url('sg-500.ttf') format('truetype'); }
-  @font-face { font-family: 'Space Grotesk'; font-weight: 700; src: url('sg-700.ttf') format('truetype'); }
+  @font-face { font-family: 'Inter'; font-weight: 500; src: url('inter-500.ttf') format('truetype'); }
+  @font-face { font-family: 'Inter'; font-weight: 600; src: url('inter-600.ttf') format('truetype'); }
+  @font-face { font-family: 'Inter'; font-weight: 700; src: url('inter-700.ttf') format('truetype'); }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* Mirrors the live counter page in dark appearance: black, white tabular
+     numerals, and one soft two-colour wash. The wash uses the same OKLCH
+     recipe as CD.paint() in the site (w1 at L 0.72, w2 at L 0.70). */
   :root {
-    --bg: #0a0a0f;
-    --surface: rgba(255,255,255,0.04);
-    --surface-border: rgba(255,255,255,0.08);
-    --text: #f0f0f5;
-    --text-dim: rgba(255,255,255,0.5);
-    --gradient: linear-gradient(135deg, #c084fc, #e879f9, #fb7185);
+    --h1: {{h1}};
+    --h2: {{h2}};
+    --c: {{c}};
+    --w1: oklch(0.72 var(--c) var(--h1));
+    --w2: oklch(0.70 calc(var(--c) * 0.9) var(--h2));
+    --tint: oklch(0.80 min(var(--c), 0.15) var(--h1));
+    --label: #ffffff;
+    --label-2: rgba(235,235,245,0.62);
+    --fill: rgba(118,118,128,0.24);
   }
 
-  html { width: 1200px; height: 630px; background: var(--bg); }
+  html, body { width: 1200px; height: 630px; background: #000; }
   body {
-    width: 1200px;
-    height: 630px;
-    font-family: 'Space Grotesk', system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    overflow: hidden;
     position: relative;
+    overflow: hidden;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: "tnum";
+    color: var(--label);
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* Same layered radial glow as the live site's animated backdrop, frozen. */
   /* Absolute (not fixed) so it fills the 630px page box, not the viewport --
      headless Chromium's viewport is shorter than the page it screenshots. */
-  .bg-gradient {
+  .wash {
     position: absolute;
     top: 0; left: 0;
     width: 1200px; height: 630px;
-    overflow: hidden;
-  }
-  .bg-gradient::before {
-    content: '';
-    position: absolute;
-    width: 1800px; height: 1800px;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%) scale(1.05) rotate(8deg);
-    background: radial-gradient(circle at 30% 40%, rgba(192,132,252,0.20) 0%, transparent 50%),
-                radial-gradient(circle at 70% 60%, rgba(251,113,133,0.13) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(232,121,249,0.10) 0%, transparent 60%);
+    background:
+      radial-gradient(70% 85% at 0% 0%, color-mix(in srgb, var(--w1) 46%, transparent), transparent 75%),
+      radial-gradient(65% 80% at 100% 100%, color-mix(in srgb, var(--w2) 32%, transparent), transparent 75%);
   }
 
   .frame {
@@ -55,89 +52,44 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 34px;
-    padding: 56px 64px;
+    gap: 30px;
+    padding: 48px 64px;
     text-align: center;
   }
 
-  .wordmark {
-    font-size: 40px;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    background: var(--gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .wordmark .sub {
-    -webkit-text-fill-color: var(--text-dim);
-    font-weight: 500;
-  }
+  .wordmark { font-size: 36px; font-weight: 700; letter-spacing: -0.035em; }
+  .wordmark .sub { color: var(--label-2); font-weight: 500; letter-spacing: -0.02em; }
 
-  .timer-grid { display: flex; gap: 18px; align-items: center; }
-  .timer-unit { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  .timer-digits {
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--surface-border);
-    border-radius: 20px;
-    padding: 22px 30px;
-    min-width: 148px;
-    overflow: hidden;
-  }
-  /* The hairline split that makes the tiles read as flip-clock cards. */
-  .timer-digits::after {
-    content: '';
-    position: absolute; left: 8%; right: 8%; top: 50%;
-    height: 1px; background: rgba(255,255,255,0.06);
-  }
-  .digit-value {
-    display: block;
-    font-size: 96px;
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
-    background: var(--gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .digit-label {
-    font-size: 17px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--text-dim);
-  }
-  .timer-colon {
-    font-size: 56px;
-    font-weight: 700;
-    color: var(--text-dim);
-    margin-bottom: 40px;
-  }
+  .num { font-weight: 600; line-height: 1; letter-spacing: -0.035em; white-space: nowrap; }
 
-  .headline {
-    font-size: 46px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
-    max-width: 900px;
-  }
+  /* Countdown: numerals with small unit labels, no tiles. */
+  .digits { display: flex; gap: 56px; align-items: flex-start; }
+  .unit { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .digits .num { font-size: 156px; }
+  .unit-label { font-size: 22px; font-weight: 500; color: var(--label-2); letter-spacing: 0; }
 
-  .footnote {
-    font-size: 21px;
-    font-weight: 500;
-    color: var(--text-dim);
-    letter-spacing: 0.01em;
-  }
+  /* Timer: the ring from the live page. */
+  .ring-wrap { position: relative; width: 300px; height: 300px; display: grid; place-items: center; }
+  .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 7; }
+  .ring .track { stroke: var(--fill); }
+  .ring .prog { stroke: var(--tint); stroke-linecap: round; }
+  .ring-wrap .num { font-size: 92px; }
+
+  /* Stopwatch: one big readout. */
+  .readout .num { font-size: 168px; }
+
+  .headline { font-size: 44px; font-weight: 700; letter-spacing: -0.028em; line-height: 1.1; }
+  .footnote { font-size: 21px; font-weight: 500; color: var(--label-2); letter-spacing: 0; }
 </style>
 </head>
 <body>
-<div class="bg-gradient"></div>
+<div class="wash"></div>
 <div class="frame">
-  <div class="wordmark">clockdown<span class="sub" data-slot="sub"></span></div>
-  <div class="timer-grid" data-slot="grid"></div>
-  <div class="headline" data-slot="headline"></div>
-  <div class="footnote" data-slot="footnote"></div>
+  <div class="wordmark">clockdown<span class="sub">{{sub}}</span></div>
+  {{visual}}
+  <div class="headline">{{headline}}</div>
+  <div class="footnote">{{footnote}}</div>
 </div>
 </body>
 </html>
