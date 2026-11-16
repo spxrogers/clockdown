@@ -194,6 +194,63 @@ button { cursor: pointer; background: none; border: 0; }
   opacity: var(--edge-p, 0);
 }
 
+/* Mini preview (phone only): once the card's numbers scroll under the bar, a
+   compact copy of it settles in just below, so the live preview stays in view
+   while you fill in the form. Tap it to jump back to the full card. */
+.mini {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  width: min(calc(100% - 32px), 32rem);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px 9px 12px;
+  border: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  isolation: isolate;
+  color: var(--label);
+  font: inherit;
+  text-align: left;
+  background: var(--material);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: translate(-50%, -10px) scale(0.96);
+  pointer-events: none;
+  transition: transform var(--dur) var(--ease), opacity 180ms ease;
+}
+.mini::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(90% 140% at 0% 0%, color-mix(in srgb, var(--w1) var(--wash-a), transparent), transparent 75%),
+    radial-gradient(80% 140% at 100% 100%, color-mix(in srgb, var(--w2) var(--wash-b), transparent), transparent 75%);
+}
+.mini.on { opacity: 1; transform: translate(-50%, 0) scale(1); pointer-events: auto; }
+.mini.on:active { transform: translate(-50%, 0) scale(0.97); }
+.mini-emoji { font-size: 1.375rem; line-height: 1; flex: none; }
+.mini-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.mini-name.placeholder { color: var(--label-3); }
+.mini .num { flex: none; font-size: 1.25rem; }
+@media (min-width: 920px) { .mini { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .mini, .mini.on, .mini.on:active { transform: translate(-50%, 0); }
+}
+
 /* Segmented control. Specific labels, current page marked. */
 .seg {
   display: inline-grid;
@@ -277,7 +334,7 @@ button { cursor: pointer; background: none; border: 0; }
 
 /* ---- Accessibility: transparency, contrast ---- */
 @media (prefers-reduced-transparency: reduce) {
-  .bar::before, .pill, .toast, .actions::before {
+  .bar::before, .pill, .toast, .actions::before, .mini {
     background: var(--material-solid) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
@@ -285,7 +342,7 @@ button { cursor: pointer; background: none; border: 0; }
 }
 @media (prefers-contrast: more) {
   :root { --label-2: color-mix(in srgb, var(--label) 82%, transparent); --sep: var(--label-3); }
-  .bar::before, .pill, .toast, .actions::before { background: var(--material-solid) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  .bar::before, .pill, .toast, .actions::before, .mini { background: var(--material-solid) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   .pill, .btn, .seg, .group, .card { box-shadow: inset 0 0 0 1px var(--label-3) !important; }
 }
 /* ============================================================
@@ -1358,6 +1415,55 @@ const CD = (function () {
     update();
   }
 
+  /* ---------- Mini preview: a compact copy of the card pinned under the bar ---------- */
+  function miniPreview(bar, card, dir) {
+    if (!bar || !card) return;
+    const digits = card.querySelector('.digits');
+    if (!digits) return;
+    const mini = document.createElement('button');
+    mini.type = 'button';
+    mini.className = 'mini';
+    // Purely a visual convenience; the full card stays in the accessibility tree.
+    mini.setAttribute('aria-hidden', 'true');
+    mini.tabIndex = -1;
+    mini.innerHTML = '<span class="mini-emoji"></span><span class="mini-name"></span><span class="num"></span>';
+    bar.appendChild(mini);
+    const [mEmoji, mName, mNum] = mini.children;
+    const srcEmoji = card.querySelector('.card-emoji');
+    const srcName = card.querySelector('.card-title');
+    const valueOf = el => el._slots ? el._slots.map(s => s.ch).join('') : el.textContent;
+
+    let syncRaf = 0;
+    const sync = () => {
+      syncRaf = 0;
+      mEmoji.textContent = srcEmoji ? srcEmoji.textContent : '';
+      mName.textContent = srcName ? srcName.textContent : '';
+      mName.classList.toggle('placeholder', !!srcName && srcName.classList.contains('placeholder'));
+      const v = Array.from(digits.querySelectorAll('.num'), valueOf);
+      // Countdown: days, hours, minutes, seconds. Drop the days while there are none.
+      const text = v.length === 4 ? (v[0] !== '00' ? +v[0] + 'd ' : '') + v.slice(1).join(':') : v.join('');
+      roll(mNum, text, mini.classList.contains('on') ? dir : 0);
+    };
+    new MutationObserver(() => { if (!syncRaf) syncRaf = requestAnimationFrame(sync); })
+      .observe(card, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+    sync();
+
+    const phone = window.matchMedia('(max-width: 919px)');
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const on = phone.matches && digits.getBoundingClientRect().bottom < bar.getBoundingClientRect().bottom;
+      if (on !== mini.classList.contains('on')) mini.classList.toggle('on', on);
+    };
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(update); };
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    mini.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    });
+    update();
+  }
+
   /* ---------- Hash ---------- */
   function parseHash() {
     const hash = window.location.hash.slice(1);
@@ -1864,7 +1970,7 @@ const CD = (function () {
 
   return {
     $, clamp, reduceMotion, SPRING, SPRING_FAST,
-    haptic, toast, copyLink, share, THEMES, paintFor, emojiPalette, scrollEdge, parseHash,
+    haptic, toast, copyLink, share, THEMES, paintFor, emojiPalette, scrollEdge, miniPreview, parseHash,
     transition, roll, Wheel, emojiPicker, themePicker, disclosure, confetti,
     unlockAudio, chime, ICON,
   };
@@ -2149,6 +2255,7 @@ const CD = (function () {
 
   syncPresets();
   CD.scrollEdge($('#bar'));
+  CD.miniPreview($('#bar'), $('#preview'), -1);
   window.addEventListener('hashchange', route);
   route();
 })();
