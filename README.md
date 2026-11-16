@@ -14,7 +14,7 @@ Make a countdown, give it a name and an emoji, send the link to your friends. No
 | ⏲️ **Timer** | [clockdown.us/timer](https://clockdown.us/timer/) | Count down from a duration, with pause, resume and reset. |
 | ⏱️ **Stopwatch** | [clockdown.us/stopwatch](https://clockdown.us/stopwatch/) | Count up, with lap splits. |
 
-Each one has a creator with a live preview, five themes (`galaxy`, `sunset`, `ocean`, `neon`, `minimal`) and a Share button that uses your phone's native share sheet when it can.
+Each one has a creator with a live preview, colours picked automatically from your emoji (or one of five themes: `galaxy`, `sunset`, `ocean`, `neon`, `minimal`) and a Share button that uses your phone's native share sheet when it can.
 
 Want the backstory? [Read the motivation →](https://clockdown.us/motivation/)
 
@@ -34,7 +34,7 @@ https://clockdown.us/#t=2026-12-31T00:00&tz=America/New_York&n=New%20Year&e=🎉
 | `s` | stopwatch | Always `1`; marks a stopwatch link |
 | `n` | all | Name (optional) |
 | `e` | all | Emoji (optional) |
-| `bg` | all | Theme (optional, defaults to `galaxy`) |
+| `bg` | all | Theme (optional; when absent, colours come from the emoji) |
 
 Browsers never send the hash to a server, so counter names don't show up in anyone's logs, ours included.
 
